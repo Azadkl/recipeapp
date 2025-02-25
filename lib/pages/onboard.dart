@@ -49,7 +49,7 @@ class _OnboardState extends State<Onboard> {
                         contents[i].image,
                         height: 450,
                         width: MediaQuery.of(context).size.width,
-                        fit: BoxFit.fill,
+                        fit: BoxFit.cover,
                       ),
                       SizedBox(height: 40.0),
                       Text(contents[i].title, style:  AppWidget.HeadlineTextFeildStyle()),

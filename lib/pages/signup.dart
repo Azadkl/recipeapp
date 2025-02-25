@@ -30,9 +30,12 @@ class _SignupState extends State<Signup> {
   String email = "", password = "";
 
   final _formkey = GlobalKey<FormState>();
+
   TextEditingController usernamecontroller = new TextEditingController();
   TextEditingController useremailcontroller = new TextEditingController();
   TextEditingController userpasswordcontroller = new TextEditingController();
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

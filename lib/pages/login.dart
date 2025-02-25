@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:recipeapp/pages/bottomnav.dart';
+import 'package:recipeapp/pages/forgotpassword.dart';
+import 'package:recipeapp/pages/home.dart';
 import 'package:recipeapp/pages/signup.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
@@ -26,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // İşlem tamamlandıktan sonra başka bir sayfaya yönlendirme vb. işlemler yapılabilir
   }
+
   String email = "", password = "";
 
   final _formkey = GlobalKey<FormState>();
@@ -95,7 +99,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Column(
                           children: [
                             SizedBox(height: 30.0),
-                            Text("Giriş Yap",style: AppWidget.HeadlineTextFeildStyle(),),
+                            Text(
+                              "Giriş Yap",
+                              style: AppWidget.HeadlineTextFeildStyle(),
+                            ),
                             SizedBox(height: 30.0),
                             TextFormField(
                               controller: useremailcontroller,
@@ -126,27 +133,35 @@ class _LoginScreenState extends State<LoginScreen> {
                                 hintStyle: AppWidget.semiBoldTextFeildStyle(),
                                 prefixIcon: Icon(Icons.key),
                               ),
-                              
                             ),
-                            SizedBox(
-                              height: 20.0,
-                            ),
+                            SizedBox(height: 20.0),
                             GestureDetector(
-                              onTap: (){
-                                
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ForgotPassword(),
+                                  ),
+                                );
                               },
                               child: Container(
                                 alignment: Alignment.topRight,
                                 child: Text(
-                                  "Parolamı Unuttum?",style: AppWidget.semiBoldTextFeildStyle(),
+                                  "Parolamı Unuttum?",
+                                  style: AppWidget.semiBoldTextFeildStyle(),
                                 ),
                               ),
                             ),
-                            SizedBox(
-                              height: 80.0,
-                            ),
+                            SizedBox(height: 80.0),
                             GestureDetector(
-                              onTap:  isLoading ? null : _handleLogin, 
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => Bottomnav(),
+                                  ),
+                                );
+                              },
                               child: Material(
                                 elevation: 5.0,
                                 borderRadius: BorderRadius.circular(20),
@@ -155,41 +170,40 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 200,
                                   decoration: BoxDecoration(
                                     color: Color(0Xffff5722),
-                                    borderRadius: BorderRadius.circular(20)
+                                    borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Center(
-                                      child: isLoading
-                                           ? SizedBox(
-                                            width: 26.0,
-                                            height: 26.0,
-                                            child: CircularProgressIndicator(
+                                    child:
+                                        isLoading
+                                            ? SizedBox(
+                                              width: 26.0,
+                                              height: 26.0,
+                                              child: CircularProgressIndicator(
                                                 color: Colors.white,
-                      
                                               ),
-                                          )
-                                          : Text(
+                                            )
+                                            : Text(
                                               "Giriş Yap",
                                               style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 18.0,
-                                                  fontFamily: 'Poppins1',
-                                                  fontWeight: FontWeight.bold),
+                                                color: Colors.white,
+                                                fontSize: 18.0,
+                                                fontFamily: 'Poppins1',
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
-                                    ),
+                                  ),
                                 ),
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: 70.0,
-                  ),
+                  SizedBox(height: 70.0),
                   GestureDetector(
                     onTap: () {
-                       Navigator.push(
+                      Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => Signup()),
                       );
@@ -198,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       "Hesabınız yok mu ? Kayıt olun.",
                       style: AppWidget.semiBoldTextFeildStyle(),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
