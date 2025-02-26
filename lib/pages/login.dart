@@ -39,184 +39,186 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        child: Stack(
-          children: [
-            Container(
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height / 2.5,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color.fromARGB(255, 255, 0, 0),
-                    Color.fromARGB(255, 255, 0, 0),
-                  ],
-                ),
-              ),
-            ),
-            Container(
-              margin: EdgeInsets.only(
-                top: MediaQuery.of(context).size.height / 3,
-              ),
-              height: MediaQuery.of(context).size.height / 2,
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40),
-                  topRight: Radius.circular(40),
-                ),
-              ),
-              child: Text(""),
-            ),
-            Container(
-              margin: EdgeInsets.only(top: 50, left: 20.0, right: 20.0),
-              child: Column(
-                children: [
-                  Center(
-                    child: Image.asset(
-                      "assets/images/logo.png",
-                      width: MediaQuery.of(context).size.width / 1.5,
-                      fit: BoxFit.cover,
-                    ),
+      body: SingleChildScrollView(
+        child: Container(
+          child: Stack(
+            children: [
+              Container(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height / 2.5,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.fromARGB(255, 255, 0, 0),
+                      Color.fromARGB(255, 255, 0, 0),
+                    ],
                   ),
-                  SizedBox(height: 50.0),
-                  Material(
-                    elevation: 5.0,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Container(
-                      padding: EdgeInsets.only(left: 20, right: 20),
-                      width: MediaQuery.of(context).size.width,
-                      height: MediaQuery.of(context).size.height / 2,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              Container(
+                margin: EdgeInsets.only(
+                  top: MediaQuery.of(context).size.height / 3,
+                ),
+                height: MediaQuery.of(context).size.height / 2,
+                width: MediaQuery.of(context).size.width,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(40),
+                    topRight: Radius.circular(40),
+                  ),
+                ),
+                child: Text(""),
+              ),
+              Container(
+                margin: EdgeInsets.only(top: 50, left: 20.0, right: 20.0),
+                child: Column(
+                  children: [
+                    Center(
+                      child: Image.asset(
+                        "assets/images/logo.png",
+                        width: MediaQuery.of(context).size.width / 1.5,
+                        fit: BoxFit.cover,
                       ),
-                      child: Form(
-                        key: _formkey,
-                        child: Column(
-                          children: [
-                            SizedBox(height: 30.0),
-                            Text(
-                              "Giriş Yap",
-                              style: AppWidget.HeadlineTextFeildStyle(),
-                            ),
-                            SizedBox(height: 30.0),
-                            TextFormField(
-                              controller: useremailcontroller,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return "Lütfen Email Giriniz.";
-                                }
-                                return null;
-                              },
-                              decoration: InputDecoration(
-                                hintText: "Email",
-                                hintStyle: AppWidget.semiBoldTextFeildStyle(),
-                                prefixIcon: Icon(Icons.email_outlined),
+                    ),
+                    SizedBox(height: 50.0),
+                    Material(
+                      elevation: 5.0,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: EdgeInsets.only(left: 20, right: 20),
+                        width: MediaQuery.of(context).size.width,
+                        height: MediaQuery.of(context).size.height / 2,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Form(
+                          key: _formkey,
+                          child: Column(
+                            children: [
+                              SizedBox(height: 30.0),
+                              Text(
+                                "Giriş Yap",
+                                style: AppWidget.HeadlineTextFeildStyle(),
                               ),
-                            ),
-                            SizedBox(height: 30.0),
-                            TextFormField(
-                              controller: userpasswordcontroller,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return "Lütfen Şifre Giriniz.";
-                                }
-                                return null;
-                              },
-                              obscureText: true,
-                              decoration: InputDecoration(
-                                hintText: "Şifre",
-                                hintStyle: AppWidget.semiBoldTextFeildStyle(),
-                                prefixIcon: Icon(Icons.key),
-                              ),
-                            ),
-                            SizedBox(height: 20.0),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ForgotPassword(),
-                                  ),
-                                );
-                              },
-                              child: Container(
-                                alignment: Alignment.topRight,
-                                child: Text(
-                                  "Parolamı Unuttum?",
-                                  style: AppWidget.semiBoldTextFeildStyle(),
+                              SizedBox(height: 30.0),
+                              TextFormField(
+                                controller: useremailcontroller,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Lütfen Email Giriniz.";
+                                  }
+                                  return null;
+                                },
+                                decoration: InputDecoration(
+                                  hintText: "Email",
+                                  hintStyle: AppWidget.semiBoldTextFeildStyle(),
+                                  prefixIcon: Icon(Icons.email_outlined),
                                 ),
                               ),
-                            ),
-                            SizedBox(height: 80.0),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => Bottomnav(),
-                                  ),
-                                );
-                              },
-                              child: Material(
-                                elevation: 5.0,
-                                borderRadius: BorderRadius.circular(20),
+                              SizedBox(height: 30.0),
+                              TextFormField(
+                                controller: userpasswordcontroller,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Lütfen Şifre Giriniz.";
+                                  }
+                                  return null;
+                                },
+                                obscureText: true,
+                                decoration: InputDecoration(
+                                  hintText: "Şifre",
+                                  hintStyle: AppWidget.semiBoldTextFeildStyle(),
+                                  prefixIcon: Icon(Icons.key),
+                                ),
+                              ),
+                              SizedBox(height: 20.0),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ForgotPassword(),
+                                    ),
+                                  );
+                                },
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                                  width: 200,
-                                  decoration: BoxDecoration(
-                                    color: Color(0Xffff5722),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Center(
-                                    child:
-                                        isLoading
-                                            ? SizedBox(
-                                              width: 26.0,
-                                              height: 26.0,
-                                              child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                              ),
-                                            )
-                                            : Text(
-                                              "Giriş Yap",
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 18.0,
-                                                fontFamily: 'Poppins1',
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
+                                  alignment: Alignment.topRight,
+                                  child: Text(
+                                    "Parolamı Unuttum?",
+                                    style: AppWidget.semiBoldTextFeildStyle(),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                              SizedBox(height: 80.0),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => Bottomnav(),
+                                    ),
+                                  );
+                                },
+                                child: Material(
+                                  elevation: 5.0,
+                                  borderRadius: BorderRadius.circular(20),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                                    width: 200,
+                                    decoration: BoxDecoration(
+                                      color: Color(0Xffff5722),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Center(
+                                      child:
+                                          isLoading
+                                              ? SizedBox(
+                                                width: 26.0,
+                                                height: 26.0,
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                ),
+                                              )
+                                              : Text(
+                                                "Giriş Yap",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 18.0,
+                                                  fontFamily: 'Poppins1',
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: 70.0),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => Signup()),
-                      );
-                    },
-                    child: Text(
-                      "Hesabınız yok mu ? Kayıt olun.",
-                      style: AppWidget.semiBoldTextFeildStyle(),
+                    SizedBox(height: 70.0),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => Signup()),
+                        );
+                      },
+                      child: Text(
+                        "Hesabınız yok mu ? Kayıt olun.",
+                        style: AppWidget.semiBoldTextFeildStyle(),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
