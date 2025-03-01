@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recipeapp/pages/otp_screen.dart';
 import 'package:recipeapp/pages/signup.dart';
 
 class ForgotPassword extends StatefulWidget {
@@ -45,7 +46,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                   child: ListView(
                     children: [
                       Container(
-                        padding: EdgeInsets.all( 10.0),
+                        padding: EdgeInsets.all(10.0),
                         decoration: BoxDecoration(
                           border: Border.all(color: Colors.white70, width: 2.0),
                           borderRadius: BorderRadius.circular(30),
@@ -77,58 +78,70 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                       SizedBox(height: 40.0),
 
                       GestureDetector(
-                    onTap: (){
-                    },
-                    child: Container(
-                      width: 140,
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10)),
-                      child: Center(
-                        child: Text(
-                          "Gönder",
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18.0,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: 50.0,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        "Hesabınız yok mu?",
-                        style: TextStyle(fontSize: 18.0, color: Colors.white),
-                      ),
-                      SizedBox(
-                        width: 5.0,
-                      ),
-                      GestureDetector(
                         onTap: () {
                           Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => Signup()));
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => OtpScreen(),
+                            ),
+                          );
                         },
-                        child: Text(
-                          "Kayıt Ol",
-                          style: TextStyle(
-                              color: Color.fromARGB(225, 184, 166, 6),
-                              fontSize: 20.0,
-                              fontWeight: FontWeight.w500),
+                        child: Container(
+                          width: 140,
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Gönder",
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
-                      )
+                      ),
+                      SizedBox(height: 50.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Hesabınız yok mu?",
+                            style: TextStyle(
+                              fontSize: 18.0,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(width: 5.0),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => Signup(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              "Kayıt Ol",
+                              style: TextStyle(
+                                color: Color.fromARGB(225, 184, 166, 6),
+                                fontSize: 20.0,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                  )
-                ],
+                  ),
+                ),
               ),
-            ))),
+            ),
           ],
         ),
       ),
