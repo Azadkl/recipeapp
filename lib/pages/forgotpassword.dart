@@ -21,7 +21,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             Container(
               alignment: Alignment.topCenter,
               child: Text(
-                "Password Recovery",
+                "Şifre Sıfırlama",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 30.0,
@@ -31,7 +31,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
             ),
             SizedBox(height: 10.0),
             Text(
-              "Enter your mail",
+              "Email Giriniz",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20.0,
@@ -54,7 +54,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                           controller: mailcontroller,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return "Please Enter Email:";
+                              return "Lütfen Emaili giriniz:";
                             }
                             return null;
                           },
@@ -87,7 +87,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                           borderRadius: BorderRadius.circular(10)),
                       child: Center(
                         child: Text(
-                          "Send Email",
+                          "Gönder",
                           style: TextStyle(
                               color: Colors.black,
                               fontSize: 18.0,
@@ -103,7 +103,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account?",
+                        "Hesabınız yok mu?",
                         style: TextStyle(fontSize: 18.0, color: Colors.white),
                       ),
                       SizedBox(
@@ -117,7 +117,7 @@ class _ForgotPasswordState extends State<ForgotPassword> {
                                   builder: (context) => Signup()));
                         },
                         child: Text(
-                          "Create",
+                          "Kayıt Ol",
                           style: TextStyle(
                               color: Color.fromARGB(225, 184, 166, 6),
                               fontSize: 20.0,

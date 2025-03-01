@@ -24,7 +24,7 @@ class _OnboardState extends State<Onboard> {
         VideoPlayerController.asset("assets/images/video.mp4")
           ..initialize().then((_) {
             setState(() {});
-             _videoController.setVolume(0.0); // Mute the video
+            _videoController.setVolume(0.0); // Mute the video
           })
           ..setLooping(true)
           ..play();
@@ -47,86 +47,114 @@ class _OnboardState extends State<Onboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
           /// **Arkaplanda Video**
           Positioned.fill(
             child:
                 _videoController.value.isInitialized
-                    ? Chewie(controller: _chewieController)
+                    ? FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _videoController.value.size.width,
+                        height: _videoController.value.size.height,
+                        child: Chewie(controller: _chewieController),
+                      ),
+                    )
                     : Center(child: CircularProgressIndicator()),
           ),
 
           /// **Ön Planda Metinler ve Buton**
           Positioned.fill(
-            child: Container(
-              color: Colors.black.withOpacity(0.4), // Şeffaf karartma efekti
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  /// **Başlık**
-                  Text(
-                    contents[currentIndex].title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(height: 20),
-
-                  /// **Açıklama**
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Text(
-                      contents[currentIndex].description,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: Colors.white),
-                    ),
-                  ),
-                  SizedBox(height: 40),
-
-                  /// **Sonraki / Başla Butonu**
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        if (currentIndex < contents.length - 1) {
-                          currentIndex++;
-                        } else {
-                          // Video oynatmayı durdur ve belleği temizle
-                          _videoController.pause();
-                          _videoController.dispose();
-                          _chewieController.dispose();
-
-                          // Yeni sayfaya yönlendir
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => Signup()),
-                          );
-                        }
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: EdgeInsets.symmetric(
-                        vertical: 15,
-                        horizontal: 40,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 100.0),
+              child: Container(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    /// **Başlık**
+                    AnimatedSwitcher(
+                      duration: Duration(milliseconds: 1000),
+                      transitionBuilder:
+                          (widget, animation) =>
+                              FadeTransition(opacity: animation, child: widget),
+                      child: Text(
+                        contents[currentIndex].title,
+                        key: ValueKey<int>(
+                          currentIndex,
+                        ), // Her değişimde animasyon başlatır
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
-                    child: Text(
-                      currentIndex == contents.length - 1 ? "Başla" : "Sonraki",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    SizedBox(height: 20),
+
+                    /// **Açıklama**
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: AnimatedSwitcher(
+                        duration: Duration(milliseconds: 500),
+                        transitionBuilder:
+                          (widget, animation) =>
+                              FadeTransition(opacity: animation, child: widget),
+                        child: Text(
+                          contents[currentIndex].description,
+                          key: ValueKey<int>(currentIndex),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 18, color: Colors.white),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                    SizedBox(height: 40),
+
+                    /// **Sonraki / Başla Butonu**
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          if (currentIndex < contents.length - 1) {
+                            currentIndex++;
+                          } else {
+                            // Video oynatmayı durdur ve belleği temizle
+                            _videoController.pause();
+                            _videoController.dispose();
+                            _chewieController.dispose();
+
+                            // Yeni sayfaya yönlendir
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => Signup()),
+                            );
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 15,
+                          horizontal: 40,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: Text(
+                        currentIndex == contents.length - 1
+                            ? "Başla"
+                            : "Devam Et",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
