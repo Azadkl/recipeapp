@@ -1,4 +1,5 @@
 import 'package:dotted_border/dotted_border.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:recipeapp/widget/widget_support.dart';
@@ -13,6 +14,31 @@ class AddRecipe extends StatefulWidget {
 class _AddRecipeState extends State<AddRecipe> {
   PageController controller = PageController();
   String? selectedType;
+  TextEditingController _stepController = TextEditingController();
+  TextEditingController _detailController = TextEditingController();
+  TextEditingController _ingredientController = TextEditingController();
+  TextEditingController _durationController = TextEditingController();
+  List<String> steps = [];
+
+  void _addStep() {
+    if (_stepController.text.isNotEmpty) {
+      setState(() {
+        steps.add("${_stepController.text}");
+      
+        _stepController.clear(); // TextField'ı temizle
+      });
+    }
+  }
+    void _removeStep(int index) {
+
+      setState(() {
+        steps.removeAt(index);
+      
+        _stepController.clear(); // TextField'ı temizle
+      });
+   
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -89,6 +115,7 @@ class _AddRecipeState extends State<AddRecipe> {
           TextFormField(
             textAlign: TextAlign.start,
             keyboardType: TextInputType.text,
+            controller: _detailController,
             style: AppWidget.LightTextFeildStyle().copyWith(
               color: Colors.black,
             ),
@@ -150,7 +177,8 @@ class _AddRecipeState extends State<AddRecipe> {
           SizedBox(height: MediaQuery.of(context).size.height * 0.01),
           TextFormField(
             textAlign: TextAlign.start,
-            keyboardType: TextInputType.text,
+            keyboardType: TextInputType.multiline, // Çok satırlı giriş desteği
+            textInputAction: TextInputAction.newline, // ✔ yerine ↵ tuşu
             maxLines: 3,
             style: AppWidget.LightTextFeildStyle().copyWith(
               color: Colors.black,
@@ -224,6 +252,7 @@ class _AddRecipeState extends State<AddRecipe> {
           TextFormField(
             textAlign: TextAlign.start,
             keyboardType: TextInputType.number,
+            controller: _durationController,
             style: AppWidget.LightTextFeildStyle().copyWith(
               color: Colors.black,
             ),
@@ -255,8 +284,10 @@ class _AddRecipeState extends State<AddRecipe> {
           SizedBox(height: MediaQuery.of(context).size.height * 0.01),
           TextFormField(
             textAlign: TextAlign.start,
-            keyboardType: TextInputType.text,
+            keyboardType: TextInputType.multiline, // Çok satırlı giriş desteği
+            textInputAction: TextInputAction.newline, // ✔ yerine ↵ tuşu
             maxLines: 3,
+            controller: _stepController,
             style: AppWidget.LightTextFeildStyle().copyWith(
               color: Colors.black,
             ),
@@ -275,6 +306,50 @@ class _AddRecipeState extends State<AddRecipe> {
                   color: Colors.black, // Odaklanınca mavi border olacak
                   width: 2,
                 ),
+              ),
+            ),
+          ),
+
+          SizedBox(height: 10),
+          ElevatedButton.icon(
+            onPressed: _addStep,
+            icon: Icon(Icons.add),
+            label: Text("Adım Ekle"),
+          ),
+          SizedBox(height: 10),
+          // Eklenen adımları liste halinde gösteriyoruz
+          ListView.builder(
+            shrinkWrap: true, // Parent widget ile uyumlu hale getirir
+            physics:
+                NeverScrollableScrollPhysics(), // Tekrardan kaydırma engellenir
+            itemCount: steps.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                leading: CircleAvatar(child: Text("${index + 1}")),
+                title: Text(steps[index]),
+                trailing: IconButton(
+                  onPressed:() => _removeStep(index),
+                  icon: Icon(Icons.remove),
+                  color: Colors.red,
+                  iconSize: 30,
+                ),
+              );
+            },
+          ),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+          GestureDetector(
+            onTap: () {},
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.grey,
+              ),
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height * 0.06,
+
+              child: Icon(
+                CupertinoIcons.photo_camera_solid,
+                color: Colors.black,
               ),
             ),
           ),

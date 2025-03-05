@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recipeapp/pages/add_recipe.dart';
+import 'package:recipeapp/pages/recipe_screen.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
 class Recorded extends StatefulWidget {
@@ -20,7 +21,7 @@ class _RecordedState extends State<Recorded> {
         ),
         child: Column(
           children: [
-            Text("Tarif Defterirm", style: AppWidget.HeadlineTextFeildStyle()),
+            Text("Tarif Defterim", style: AppWidget.HeadlineTextFeildStyle()),
             Container(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
@@ -35,7 +36,7 @@ class _RecordedState extends State<Recorded> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => AddRecipe(),
+                              builder: (context) => RecipeScreen(),
                             ),
                           );
                         },

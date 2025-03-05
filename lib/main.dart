@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recipeapp/pages/bottomnav.dart';
 import 'package:recipeapp/pages/login.dart';
 import 'package:recipeapp/pages/onboard.dart';
+import 'package:recipeapp/pages/recipe_screen.dart';
 import 'package:recipeapp/pages/signup.dart';
 
 void main() {
