@@ -11,6 +11,7 @@ class RecipeScreen extends StatefulWidget {
 
 class _RecipeScreenState extends State<RecipeScreen> {
   bool isLiked = false;
+  bool isSelected = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -72,22 +73,36 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                     "Makarna",
                                     style: AppWidget.semiBoldTextFeildStyle(),
                                   ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.center,
-                                        "Deftere ekle",
-                                        style: AppWidget.LightTextFeildStyle(),
-                                      ),
-                                      SizedBox(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                            0.02,
-                                      ),
-                                      Icon(Icons.bookmark_outline),
-                                    ],
+                                  InkWell(
+                                    onTap: () {
+                                      setState(() {
+                                        isSelected = !isSelected;
+                                      });
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
+                                          "Deftere ekle",
+                                          style:
+                                              AppWidget.LightTextFeildStyle(),
+                                        ),
+                                        SizedBox(
+                                          width:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.width *
+                                              0.02,
+                                        ),
+                                        Icon(
+                                          isSelected
+                                              ? Icons.bookmark
+                                              : Icons.bookmark_outline,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -99,30 +114,35 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: [
-                                      CircleAvatar(
-                                        child: Icon(
-                                          Icons.person,
-                                          color: Colors.white,
+                                  InkWell(
+                                    onTap: () {},
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          child: Icon(
+                                            Icons.person,
+                                            color: Colors.white,
+                                          ),
+                                          backgroundColor: Colors.black,
                                         ),
-                                        backgroundColor: Colors.black,
-                                      ),
-                                      SizedBox(
-                                        width:
-                                            MediaQuery.of(context).size.width *
-                                            0.03,
-                                      ),
-                                      Text(
-                                        "Azad Köl",
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.titleMedium?.copyWith(
-                                          color: Colors.black,
-                                          fontWeight: FontWeight.w700,
+                                        SizedBox(
+                                          width:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.width *
+                                              0.03,
                                         ),
-                                      ),
-                                    ],
+                                        Text(
+                                          "Azad Köl",
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleMedium?.copyWith(
+                                            color: Colors.black,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                   Row(
                                     children: [
@@ -244,7 +264,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                 height: MediaQuery.of(context).size.height * 0.06,
                 decoration: BoxDecoration(
                   color: Color(0xFF61666F).withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(100),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
                     BoxShadow(color: Color(0x0FFFFFFF), blurRadius: 4),
                   ],
@@ -267,12 +287,15 @@ class _RecipeScreenState extends State<RecipeScreen> {
                 height: MediaQuery.of(context).size.height * 0.06,
                 decoration: BoxDecoration(
                   color: Color(0xFF61666F).withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(100),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: const [
                     BoxShadow(color: Color(0x0FFFFFFF), blurRadius: 4),
                   ],
                 ),
-                child: Icon(isLiked ? Icons.favorite : Icons.favorite_border,color: isLiked ? Colors.red: Colors.black,),
+                child: Icon(
+                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: isLiked ? Colors.red : Colors.black,
+                ),
               ),
             ),
           ),

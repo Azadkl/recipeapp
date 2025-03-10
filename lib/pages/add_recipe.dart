@@ -19,24 +19,42 @@ class _AddRecipeState extends State<AddRecipe> {
   TextEditingController _ingredientController = TextEditingController();
   TextEditingController _durationController = TextEditingController();
   List<String> steps = [];
+  List<String> ingredient = [];
 
   void _addStep() {
     if (_stepController.text.isNotEmpty) {
       setState(() {
         steps.add("${_stepController.text}");
-      
+
         _stepController.clear(); // TextField'ı temizle
       });
     }
   }
-    void _removeStep(int index) {
 
+  void _removeStep(int index) {
+    setState(() {
+      steps.removeAt(index);
+
+      _stepController.clear(); // TextField'ı temizle
+    });
+  }
+
+  void _addIngredient() {
+    if (_ingredientController.text.isNotEmpty) {
       setState(() {
-        steps.removeAt(index);
-      
+        ingredient.add("${_ingredientController.text}");
+
         _stepController.clear(); // TextField'ı temizle
       });
-   
+    }
+  }
+
+  void _removeIngredient(int index) {
+    setState(() {
+      ingredient.removeAt(index);
+
+      _ingredientController.clear(); // TextField'ı temizle
+    });
   }
 
   @override
@@ -180,11 +198,12 @@ class _AddRecipeState extends State<AddRecipe> {
             keyboardType: TextInputType.multiline, // Çok satırlı giriş desteği
             textInputAction: TextInputAction.newline, // ✔ yerine ↵ tuşu
             maxLines: 3,
+            controller: _ingredientController,
             style: AppWidget.LightTextFeildStyle().copyWith(
               color: Colors.black,
             ),
             decoration: InputDecoration(
-              hintText: "Kullanılacak Malzemeleri Yazınız",
+              hintText: "Kullanılacak malzemeleri madde olarak ekleyiniz.",
               filled: false,
               border: OutlineInputBorder(
                 // Varsayılan border
@@ -200,6 +219,39 @@ class _AddRecipeState extends State<AddRecipe> {
                 ),
               ),
             ),
+          ),
+
+          SizedBox(height: 10),
+          ElevatedButton.icon(
+            onPressed: _addIngredient,
+            icon: Icon(Icons.add),
+            label: Text("Malzeme Ekle"),
+          ),
+          SizedBox(height: 10),
+          // Eklenen adımları liste halinde gösteriyoruz
+          ListView.builder(
+            shrinkWrap: true, // Parent widget ile uyumlu hale getirir
+            physics:
+                NeverScrollableScrollPhysics(), // Tekrardan kaydırma engellenir
+            itemCount: ingredient.length,
+            itemBuilder: (context, index) {
+              return ListTile(
+                leading: CircleAvatar(
+                  child: Text(
+                    "${index + 1}",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Colors.black,
+                ),
+                title: Text(ingredient[index]),
+                trailing: IconButton(
+                  onPressed: () => _removeIngredient(index),
+                  icon: Icon(Icons.remove),
+                  color: Colors.red,
+                  iconSize: 30,
+                ),
+              );
+            },
           ),
           SizedBox(height: MediaQuery.of(context).size.height * 0.04),
           GestureDetector(
@@ -325,10 +377,16 @@ class _AddRecipeState extends State<AddRecipe> {
             itemCount: steps.length,
             itemBuilder: (context, index) {
               return ListTile(
-                leading: CircleAvatar(child: Text("${index + 1}")),
+                leading: CircleAvatar(
+                  child: Text(
+                    "${index + 1}",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: Colors.black,
+                ),
                 title: Text(steps[index]),
                 trailing: IconButton(
-                  onPressed:() => _removeStep(index),
+                  onPressed: () => _removeStep(index),
                   icon: Icon(Icons.remove),
                   color: Colors.red,
                   iconSize: 30,
