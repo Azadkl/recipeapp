@@ -18,6 +18,7 @@ class _AddRecipeState extends State<AddRecipe> {
   TextEditingController _detailController = TextEditingController();
   TextEditingController _ingredientController = TextEditingController();
   TextEditingController _durationController = TextEditingController();
+  TextEditingController _portionController = TextEditingController();
   List<String> steps = [];
   List<String> ingredient = [];
 
@@ -44,7 +45,7 @@ class _AddRecipeState extends State<AddRecipe> {
       setState(() {
         ingredient.add("${_ingredientController.text}");
 
-        _stepController.clear(); // TextField'ı temizle
+        _ingredientController.clear(); // TextField'ı temizle
       });
     }
   }
@@ -310,6 +311,40 @@ class _AddRecipeState extends State<AddRecipe> {
             ),
             decoration: InputDecoration(
               hintText: "Süreyi Giriniz",
+              filled: false,
+              border: OutlineInputBorder(
+                // Varsayılan border
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey, width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                // Tıklanınca aktif border
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: Colors.black, // Odaklanınca mavi border olacak
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+
+          SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+          Row(
+            children: [
+              Text("Kaç Kişilik", style: AppWidget.semiBoldTextFeildStyle()),
+            ],
+          ),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.01),
+
+          TextFormField(
+            textAlign: TextAlign.start,
+            keyboardType: TextInputType.number,
+            controller: _portionController,
+            style: AppWidget.LightTextFeildStyle().copyWith(
+              color: Colors.black,
+            ),
+            decoration: InputDecoration(
+              hintText: "Kişi Sayısını Giriniz",
               filled: false,
               border: OutlineInputBorder(
                 // Varsayılan border

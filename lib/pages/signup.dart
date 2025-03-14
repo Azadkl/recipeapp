@@ -1,6 +1,8 @@
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:recipeapp/pages/login.dart';
 import 'package:recipeapp/widget/widget_support.dart';
+import 'package:recipeapp/widget/widgets.dart';
 
 class Signup extends StatefulWidget {
   const Signup({super.key});
@@ -12,21 +14,6 @@ class Signup extends StatefulWidget {
 class _SignupState extends State<Signup> {
   bool isLoading = false;
 
-  void _handleLogin() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    // Burada async işlemi simüle ediyoruz (örneğin API çağrısı)
-    await Future.delayed(Duration(seconds: 2));
-
-    setState(() {
-      isLoading = false;
-    });
-
-    // İşlem tamamlandıktan sonra başka bir sayfaya yönlendirme vb. işlemler yapılabilir
-  }
-
   String email = "", password = "";
 
   final _formkey = GlobalKey<FormState>();
@@ -34,7 +21,6 @@ class _SignupState extends State<Signup> {
   TextEditingController usernamecontroller = new TextEditingController();
   TextEditingController useremailcontroller = new TextEditingController();
   TextEditingController userpasswordcontroller = new TextEditingController();
-
 
   @override
   Widget build(BuildContext context) {
@@ -50,10 +36,7 @@ class _SignupState extends State<Signup> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                     Colors.black,
-                      Color.fromARGB(255, 255, 0, 0),
-                    ],
+                    colors: [Colors.black, Color.fromARGB(255, 255, 0, 0)],
                   ),
                 ),
               ),
@@ -107,42 +90,26 @@ class _SignupState extends State<Signup> {
                               SizedBox(height: 30.0),
                               TextFormField(
                                 controller: usernamecontroller,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return "Lütfen Kullanıcı Adı Giriniz.";
-                                  }
-                                  return null;
-                                },
                                 decoration: InputDecoration(
                                   hintText: "Kullanıcı Adı",
-                                  hintStyle:AppWidget.semiBoldTextFeildStyle(),
+                                  hintStyle: AppWidget.semiBoldTextFeildStyle(),
                                   prefixIcon: Icon(Icons.person),
                                 ),
                               ),
                               SizedBox(height: 30.0),
                               TextFormField(
                                 controller: useremailcontroller,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return "Lütfen Email Giriniz.";
-                                  }
-                                  return null;
-                                },
+
                                 decoration: InputDecoration(
                                   hintText: "Email",
-                                  hintStyle:AppWidget.semiBoldTextFeildStyle(),
+                                  hintStyle: AppWidget.semiBoldTextFeildStyle(),
                                   prefixIcon: Icon(Icons.email_outlined),
                                 ),
                               ),
                               SizedBox(height: 30.0),
                               TextFormField(
                                 controller: userpasswordcontroller,
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return "Lütfen Şifre Giriniz.";
-                                  }
-                                  return null;
-                                },
+
                                 obscureText: true,
                                 decoration: InputDecoration(
                                   hintText: "Şifre",
@@ -152,15 +119,17 @@ class _SignupState extends State<Signup> {
                               ),
                               SizedBox(height: 80.0),
                               GestureDetector(
-                                onTap: isLoading ? null : _handleLogin,
+                                onTap: isLoading ? null : _handleRegister,
                                 child: Material(
                                   elevation: 5.0,
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                    ),
                                     width: 200,
                                     decoration: BoxDecoration(
-                                      color:Colors.black,
+                                      color: Colors.black,
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Center(
@@ -169,9 +138,10 @@ class _SignupState extends State<Signup> {
                                               ? SizedBox(
                                                 width: 26.0,
                                                 height: 26.0,
-                                                child: CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                ),
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                    ),
                                               )
                                               : Text(
                                                 "Kayıt Ol",
@@ -196,7 +166,9 @@ class _SignupState extends State<Signup> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => LoginScreen(),
+                          ),
                         );
                       },
                       child: Text(
@@ -212,5 +184,49 @@ class _SignupState extends State<Signup> {
         ),
       ),
     );
+  }
+
+  void _handleRegister() {
+    setState(() {
+      isLoading = true;
+    });
+    if (usernamecontroller.text.isEmpty ||
+        useremailcontroller.text.isEmpty ||
+        userpasswordcontroller.text.isEmpty) {
+      Widgets.showSnackBar(
+        context,
+        "Hata!",
+        "Lütfen tüm alanları doldurunuz.",
+        ContentType.failure,
+      );
+      setState(() {
+        isLoading = false;
+      });
+    } else if (!useremailcontroller.text.contains("@")) {
+      Widgets.showSnackBar(
+        context,
+        "Hata!",
+        "Email içinde @ içeren bir ifade olmalıdır.",
+        ContentType.failure,
+      );
+      setState(() {
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = true;
+      });
+      Widgets.showSnackBar(
+        context,
+        "Başarılı!",
+        "Kayıt işlemi tamamlandı.",
+        ContentType.success,
+      );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+   
+    }
   }
 }

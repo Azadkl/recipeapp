@@ -218,6 +218,15 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 "30",
                                 style: AppWidget.LightTextFeildStyle(),
                               ),
+                               Divider(thickness: 1.0),
+                              Text(
+                                "Kaç Kişilik",
+                                style: AppWidget.semiBoldTextFeildStyle(),
+                              ),
+                              Text(
+                                "4",
+                                style: AppWidget.LightTextFeildStyle(),
+                              ),
                               Divider(thickness: 1.0),
                               Text(
                                 "İçindekiler",

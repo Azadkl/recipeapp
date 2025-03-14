@@ -40,25 +40,66 @@ class _HomeState extends State<Home> {
                 ).textTheme.bodyLarge?.copyWith(color: Colors.black),
               ),
             ),
-            Container(
-              margin: EdgeInsets.fromLTRB(16, 0, 16, 16),
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              decoration: BoxDecoration(
-                color: Colors.grey,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.search),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      "Tarifleri Ara",
-                      style: Theme.of(context).textTheme.bodyMedium,
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SearchAnchor(
+                builder: (BuildContext context, SearchController controller) {
+                  return SearchBar(
+                    controller: controller,
+                    hintText: "Tarifleri Arayın.",
+                    padding: const WidgetStatePropertyAll<EdgeInsets>(
+                      EdgeInsets.symmetric(horizontal: 16.0),
                     ),
-                  ),
-                ],
+                    onTap: () {
+                      controller.openView();
+                    },
+                    onChanged: (_) {
+                      controller.openView();
+                    },
+                    leading: const Icon(Icons.search),
+                  );
+                },
+                suggestionsBuilder: (
+                  BuildContext context,
+                  SearchController controller,
+                ) {
+                  List<String> allItems = [
+                    'item 1',
+                    'item 2',
+                    'item 3',
+                    'item 4',
+                    'item 5',
+                  ];
+
+                  // Eğer kullanıcı bir şey yazmamışsa boş liste döndür
+                  if (controller.text.isEmpty) {
+                    return [];
+                  }
+
+                  // Kullanıcının girdiği metne göre filtreleme yap
+                  List<String> filteredItems =
+                      allItems
+                          .where(
+                            (item) => item.toLowerCase().contains(
+                              controller.text.toLowerCase(),
+                            ),
+                          )
+                          .toList();
+
+                  return List<ListTile>.generate(filteredItems.length, (
+                    int index,
+                  ) {
+                    final String item = filteredItems[index];
+                    return ListTile(
+                      title: Text(item),
+                      onTap: () {
+                        setState(() {
+                          controller.closeView(item);
+                        });
+                      },
+                    );
+                  });
+                },
               ),
             ),
             Padding(

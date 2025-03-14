@@ -1,9 +1,11 @@
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:recipeapp/pages/bottomnav.dart';
 import 'package:recipeapp/pages/forgotpassword.dart';
 import 'package:recipeapp/pages/home.dart';
 import 'package:recipeapp/pages/signup.dart';
 import 'package:recipeapp/widget/widget_support.dart';
+import 'package:recipeapp/widget/widgets.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,21 +16,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool isLoading = false;
-
-  void _handleLogin() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    // Burada async işlemi simüle ediyoruz (örneğin API çağrısı)
-    await Future.delayed(Duration(seconds: 2));
-
-    setState(() {
-      isLoading = false;
-    });
-
-    // İşlem tamamlandıktan sonra başka bir sayfaya yönlendirme vb. işlemler yapılabilir
-  }
 
   String email = "", password = "";
 
@@ -50,10 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
-                      Colors.black,
-                      Color.fromARGB(255, 255, 0, 0),
-                    ],
+                    colors: [Colors.black, Color.fromARGB(255, 255, 0, 0)],
                   ),
                 ),
               ),
@@ -155,19 +139,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               SizedBox(height: 80.0),
                               GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => Bottomnav(),
-                                    ),
-                                  );
-                                },
+                                onTap: isLoading ? null : _handleLogin,
                                 child: Material(
                                   elevation: 5.0,
                                   borderRadius: BorderRadius.circular(20),
                                   child: Container(
-                                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                    ),
                                     width: 200,
                                     decoration: BoxDecoration(
                                       color: Colors.black,
@@ -179,9 +158,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                               ? SizedBox(
                                                 width: 26.0,
                                                 height: 26.0,
-                                                child: CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                ),
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                    ),
                                               )
                                               : Text(
                                                 "Giriş Yap",
@@ -222,5 +202,42 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
+  }
+
+  void _handleLogin() async {
+    setState(() {
+      isLoading = true;
+    });
+    if (useremailcontroller.text.isEmpty ||
+        userpasswordcontroller.text.isEmpty) {
+      Widgets.showSnackBar(
+        context,
+        "Hata!",
+        "Lütfen tüm alanları doldurunuz.",
+        ContentType.failure,
+      );
+      setState(() {
+        isLoading = false;
+      });
+    } else if (!useremailcontroller.text.contains("@")) {
+      Widgets.showSnackBar(
+        context,
+        "Hata!",
+        "Email içinde @ içeren bir ifade olmalıdır.",
+        ContentType.failure,
+      );
+      setState(() {
+        isLoading = false;
+      });
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => Bottomnav()),
+      );
+
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 }
