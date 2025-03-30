@@ -47,6 +47,10 @@ class _HomeState extends State<Home> {
                   return SearchBar(
                     controller: controller,
                     hintText: "Tarifleri Arayın.",
+                    backgroundColor: MaterialStateProperty.all(
+                      Colors.white,
+                    ), // Renk değişimi
+                    
                     padding: const WidgetStatePropertyAll<EdgeInsets>(
                       EdgeInsets.symmetric(horizontal: 16.0),
                     ),

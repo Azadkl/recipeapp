@@ -14,6 +14,7 @@ class Widgets {
       behavior: SnackBarBehavior.floating, // Sayfanın üzerine gelmesini sağlar
       backgroundColor: Colors.transparent, // Şeffaf arkaplan
       elevation: 0,
+      duration: Duration(milliseconds: 1500),
       content: AwesomeSnackbarContent(
         title: title, 
         message: message,
