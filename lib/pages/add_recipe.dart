@@ -1,7 +1,10 @@
+import 'dart:io';
+
 import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
 class AddRecipe extends StatefulWidget {
@@ -12,6 +15,8 @@ class AddRecipe extends StatefulWidget {
 }
 
 class _AddRecipeState extends State<AddRecipe> {
+  File? _image;
+  final ImagePicker _picker = ImagePicker();
   PageController controller = PageController();
   String? selectedType;
   TextEditingController _stepController = TextEditingController();
@@ -29,6 +34,28 @@ class _AddRecipeState extends State<AddRecipe> {
 
         _stepController.clear(); // TextField'ı temizle
       });
+    }
+  }
+
+  Future<void> _getImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _image = File(pickedFile.path);
+        });
+
+        // Simulate AI processing delay
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Görüntü alınamadı: $e')));
     }
   }
 
@@ -82,45 +109,71 @@ class _AddRecipeState extends State<AddRecipe> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(height: MediaQuery.of(context).size.height * 0.04),
-
-          Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.hardEdge,
-            children: [
-              SizedBox(
-                width: MediaQuery.of(context).size.width * 0.9,
-                height: MediaQuery.of(context).size.height * 0.16,
-                child: DottedBorder(
-                  borderType: BorderType.RRect,
-                  radius: Radius.circular(20),
-                  dashPattern: [8, 4],
-                  color: Colors.black,
-                  strokeWidth: 2,
-                  child: Center(),
-                ),
-              ),
-              InkResponse(
-                onTap: () {},
-                child: Column(
-                  children: [
-                    SvgPicture.asset(
-                      "assets/images/image.svg",
-                      height: MediaQuery.of(context).size.height * 0.06,
-                    ),
-                    Text(
-                      "Resim Ekle",
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.01),
-                    Text(
-                      "(10 Mb'a kadar)",
-                      style: AppWidget.LightTextFeildStyle(),
+          _image != null
+              ? Container(
+                height: 200,
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    _image!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  ),
+                ),
+              )
+              : Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.hardEdge,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    height: MediaQuery.of(context).size.height * 0.16,
+                    child: DottedBorder(
+                      borderType: BorderType.RRect,
+                      radius: Radius.circular(20),
+                      dashPattern: [8, 4],
+                      color: Colors.black,
+                      strokeWidth: 2,
+                      child: const Center(),
+                    ),
+                  ),
+                  InkResponse(
+                    onTap: () => _getImage(ImageSource.gallery),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SvgPicture.asset(
+                          "assets/images/image.svg",
+                          height: MediaQuery.of(context).size.height * 0.06,
+                        ),
+                        Text(
+                          "Resim Ekle",
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.01,
+                        ),
+                        Text(
+                          "(10 Mb'a kadar)",
+                          style: AppWidget.LightTextFeildStyle(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+
           SizedBox(height: MediaQuery.of(context).size.height * 0.04),
           Row(
             children: [
@@ -431,7 +484,7 @@ class _AddRecipeState extends State<AddRecipe> {
           ),
           SizedBox(height: MediaQuery.of(context).size.height * 0.04),
           GestureDetector(
-            onTap: () {},
+            onTap: () => _getImage(ImageSource.camera),
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
