@@ -1,6 +1,8 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
+import 'package:recipeapp/models/user_model.dart';
 import 'package:recipeapp/pages/login.dart';
+import 'package:recipeapp/repositories/auth_repository.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 import 'package:recipeapp/widget/widgets.dart';
 
@@ -186,7 +188,7 @@ class _SignupState extends State<Signup> {
     );
   }
 
-  void _handleRegister() {
+  void _handleRegister() async {
     setState(() {
       isLoading = true;
     });
@@ -212,21 +214,38 @@ class _SignupState extends State<Signup> {
       setState(() {
         isLoading = false;
       });
-    } else {
-      setState(() {
-        isLoading = true;
-      });
-      Widgets.showSnackBar(
-        context,
-        "Başarılı!",
-        "Kayıt işlemi tamamlandı.",
-        ContentType.success,
-      );
+    } else
+      // ignore: curly_braces_in_flow_control_structures
+      try {
+        AuthRepository authRepository = AuthRepository();
+        UserModel user = await authRepository.signup(
+          usernamecontroller.text,
+          useremailcontroller.text,
+          userpasswordcontroller.text,
+        );
+
+        Widgets.showSnackBar(
+          context,
+          "Başarılı!",
+          "Kayıt başarılı! Şimdi giriş yapabilirsiniz.",
+          ContentType.success,
+        );
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => LoginScreen()),
         );
-   
-    }
+      } catch (e) {
+        Widgets.showSnackBar(
+          context,
+          "Hata!",
+          e.toString(),
+          ContentType.failure,
+        );
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
   }
 }

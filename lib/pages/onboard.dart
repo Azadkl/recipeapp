@@ -40,8 +40,11 @@ class _OnboardState extends State<Onboard> {
   @override
   void dispose() {
     _videoController.dispose();
-    _chewieController?.dispose();
-    super.dispose();
+  // Sadece gerektiğinde dispose çağırın
+  if (_chewieController != null) {
+    _chewieController.dispose();
+  }
+  super.dispose();
   }
 
   @override

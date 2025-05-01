@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:recipeapp/datasources/auth_remote_datasource.dart';
+import 'package:recipeapp/models/user_model.dart';
 import 'package:recipeapp/pages/recipe_screen.dart';
+import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
 class Home extends StatefulWidget {
@@ -43,38 +46,74 @@ class _HomeState extends State<Home> {
       'time': '60+ dk',
     },
   ];
-  
+
   // Arama fonksiyonu
   List<Map<String, dynamic>> searchRecipes(String query) {
     if (query.isEmpty) {
       return recipes;
     }
-    
+
     return recipes.where((recipe) {
       return recipe['name'].toLowerCase().contains(query.toLowerCase());
     }).toList();
   }
 
+  UserModel? user;
+  bool isLoading = true;
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final token = await LocalStorageService.getToken();
+
+      if (token != null) {
+        final userRemoteDataSource = AuthRemoteDataSource();
+        final fetchedUser = await userRemoteDataSource.getUserDetail(token);
+
+        setState(() {
+          user = fetchedUser;
+          isLoading = false;
+        });
+      } else {
+        throw Exception("Kullanıcı oturumu bulunamadı.");
+      }
+    } catch (e) {
+      print("Hata: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title:
+            user != null
+                ? Text(
+                  "Merhaba ${user!.username},",
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(color: Colors.white),
+                )
+                : Center(child: Text("")),
+
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 24,
           bottom: MediaQuery.of(context).padding.bottom + 24,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Text(
-                "Merhaba Azad,",
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(color: Colors.black),
-              ),
-            ),
             const SizedBox(height: 8),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -93,9 +132,7 @@ class _HomeState extends State<Home> {
                   return SearchBar(
                     controller: controller,
                     hintText: "Tarifleri Arayın",
-                    backgroundColor: MaterialStateProperty.all(
-                      Colors.white,
-                    ),
+                    backgroundColor: MaterialStateProperty.all(Colors.white),
                     padding: const WidgetStatePropertyAll<EdgeInsets>(
                       EdgeInsets.symmetric(horizontal: 16.0),
                     ),
@@ -113,47 +150,61 @@ class _HomeState extends State<Home> {
                   SearchController controller,
                 ) {
                   // Arama sonuçları
-                  List<Map<String, dynamic>> searchResults = searchRecipes(controller.text);
-                  
+                  List<Map<String, dynamic>> searchResults = searchRecipes(
+                    controller.text,
+                  );
+
                   return [
                     // Sonuç başlığı
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
-                        controller.text.isEmpty 
+                        controller.text.isEmpty
                             ? 'Tüm Tarifler (${searchResults.length})'
                             : 'Arama Sonuçları (${searchResults.length})',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
-                    
+
                     // Sonuçlar listesi
                     if (searchResults.isEmpty)
                       const Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Center(
-                          child: Text('Arama kriterlerinize uygun tarif bulunamadı.'),
+                          child: Text(
+                            'Arama kriterlerinize uygun tarif bulunamadı.',
+                          ),
                         ),
                       )
                     else
-                      ...searchResults.map((recipe) => ListTile(
-                        title: Text(recipe['name']),
-                        subtitle: Text('${recipe['category']} • ${recipe['portion']} • ${recipe['time']}'),
-                        leading: CircleAvatar(
-                          backgroundColor: _getCategoryColor(recipe['category']),
-                          child: Text(
-                            recipe['name'][0],
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                        onTap: () {
-                          controller.closeView(recipe['name']);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => RecipeScreen()),
-                          );
-                        },
-                      )).toList(),
+                      ...searchResults
+                          .map(
+                            (recipe) => ListTile(
+                              title: Text(recipe['name']),
+                              subtitle: Text(
+                                '${recipe['category']} • ${recipe['portion']} • ${recipe['time']}',
+                              ),
+                              leading: CircleAvatar(
+                                backgroundColor: _getCategoryColor(
+                                  recipe['category'],
+                                ),
+                                child: Text(
+                                  recipe['name'][0],
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                              onTap: () {
+                                controller.closeView(recipe['name']);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => RecipeScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                          .toList(),
                   ];
                 },
               ),
@@ -167,7 +218,7 @@ class _HomeState extends State<Home> {
                     "Popüler Tarifler",
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  TextButton(onPressed: () {}, child: Text("Tümünü gör")),
+                  //    TextButton(onPressed: () {}, child: Text("Tümünü gör")),
                 ],
               ),
             ),
@@ -285,7 +336,7 @@ class _HomeState extends State<Home> {
                     "Son Yüklenen Tarifler",
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  TextButton(onPressed: () {}, child: Text("Tümünü gör")),
+                  // TextButton(onPressed: () {}, child: Text("Tümünü gör")),
                 ],
               ),
             ),
@@ -392,7 +443,7 @@ class _HomeState extends State<Home> {
       ),
     );
   }
-  
+
   // Kategori renklerini belirleyen yardımcı fonksiyon
   Color _getCategoryColor(String category) {
     switch (category) {

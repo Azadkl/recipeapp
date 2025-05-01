@@ -1,9 +1,14 @@
+import 'dart:developer';
+
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
+import 'package:recipeapp/models/user_model.dart';
 import 'package:recipeapp/pages/bottomnav.dart';
 import 'package:recipeapp/pages/forgotpassword.dart';
 import 'package:recipeapp/pages/home.dart';
 import 'package:recipeapp/pages/signup.dart';
+import 'package:recipeapp/repositories/auth_repository.dart';
+import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 import 'package:recipeapp/widget/widgets.dart';
 
@@ -219,25 +224,46 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() {
         isLoading = false;
       });
-    } else if (!useremailcontroller.text.contains("@")) {
-      Widgets.showSnackBar(
-        context,
-        "Hata!",
-        "Email içinde @ içeren bir ifade olmalıdır.",
-        ContentType.failure,
-      );
-      setState(() {
-        isLoading = false;
-      });
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Bottomnav()),
-      );
+    // ignore: curly_braces_in_flow_control_structures
+    }  else try {
+    AuthRepository authRepository = AuthRepository();
+    UserModel user = await authRepository.login(
+      useremailcontroller.text,
+      userpasswordcontroller.text,
+    );
 
-      setState(() {
+    // Başarılı giriş
+    Widgets.showSnackBar(
+      context,
+      "Hoş Geldin",
+      "${user.username}",
+      ContentType.success,
+    );
+
+    // Token kaydetmek istersen SharedPreferences kullanılabilir
+    // SharedPreferences prefs = await SharedPreferences.getInstance();
+    // await prefs.setString("token", user.token);
+    await LocalStorageService.saveUserId(user.id);
+    await LocalStorageService.saveToken(user.access);
+
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => Bottomnav()),
+    );
+  } catch (e) {
+  print("Hata: $e");
+
+    Widgets.showSnackBar(
+      context,
+      "Hata!",
+      "Giriş yapılamadı. ${e.toString()}",
+      ContentType.failure,
+    );
+  }finally{
+    setState(() {
         isLoading = false;
       });
-    }
+  }
   }
 }

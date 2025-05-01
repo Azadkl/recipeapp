@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:recipeapp/models/recipe_model.dart';
 import 'package:recipeapp/pages/add_recipe.dart';
 import 'package:recipeapp/pages/recipe_screen.dart';
+import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
 class Recorded extends StatefulWidget {
@@ -11,17 +13,31 @@ class Recorded extends StatefulWidget {
 }
 
 class _RecordedState extends State<Recorded> {
+  
+  List<RecipeModel> _recipes = [];
+  bool isLoading = true;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+            appBar: AppBar(
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        title: const Text(
+          'Tarif Defterim',
+          textAlign: TextAlign.center,
+        ),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 24,
+          top: MediaQuery.of(context).padding.top,
           bottom: MediaQuery.of(context).padding.bottom + 24,
         ),
         child: Column(
           children: [
-            Text("Tarif Defterim", style: AppWidget.HeadlineTextFeildStyle()),
+            
             Container(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,

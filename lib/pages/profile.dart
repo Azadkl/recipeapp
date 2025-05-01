@@ -1,8 +1,59 @@
 import 'package:flutter/material.dart';
+import 'package:recipeapp/datasources/auth_remote_datasource.dart';
+import 'package:recipeapp/models/user_model.dart';
+import 'package:recipeapp/pages/login.dart';
+import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
-class Profile extends StatelessWidget {
+
+class Profile extends StatefulWidget {
   const Profile({super.key});
+
+  @override
+  State<Profile> createState() => _ProfileState();
+}
+
+class _ProfileState extends State<Profile> {
+  UserModel? user;
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    try {
+      final token = await LocalStorageService.getToken();
+
+      if (token != null) {
+        final userRemoteDataSource = AuthRemoteDataSource();
+        final fetchedUser = await userRemoteDataSource.getUserDetail(token);
+
+        setState(() {
+          user = fetchedUser;
+        });
+      } else {
+        throw Exception("Kullanıcı oturumu bulunamadı.");
+      }
+    } catch (e) {
+      print("Hata: $e");
+      setState(() {});
+    }
+  }
+
+  // Çıkış yapma fonksiyonu
+  void _logout() async {
+    try {
+      await LocalStorageService.clearAll();  // Token'ı silin
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false, // Bu parametre, tüm önceki sayfaları siler
+      );
+    } catch (e) {
+      print("Çıkış yapılırken hata oluştu: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +88,26 @@ class Profile extends StatelessWidget {
     ];
 
     return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: const Text("Profil"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            onPressed: _logout,  // Çıkış yap butonuna tıklandığında _logout çağrılır
+          ),
+          
+        ],
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             // Profile header section
             Container(
-              padding: const EdgeInsets.only(top: 80),
+              padding: const EdgeInsets.only(top: 20),
               child: Column(
                 children: [
                   // Profile image
@@ -53,16 +118,21 @@ class Profile extends StatelessWidget {
                   ),
 
                   const SizedBox(height: 16),
-                  // Username
-                  Text(
-                    username,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  // Stats row
+                  user != null
+                      ? Text(
+                          "${user!.username}",
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        )
+                      : Text(
+                          "",
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(color: Colors.black),
+                        ),
                 ],
               ),
             ),
