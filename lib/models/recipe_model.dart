@@ -54,20 +54,5 @@ class RecipeModel {
     }
     return 'Anonim';
   }
-  static String _fixTurkishChars(String input) {
-    return input
-      .replaceAll('Ä±', 'ı')
-      .replaceAll('Ã§', 'ç')
-      .replaceAll('ÅŸ', 'ş')
-      .replaceAll('ÄŸ', 'ğ')
-      .replaceAll('Ã¶', 'ö')
-      .replaceAll('Ã¼', 'ü')
-      .replaceAll('Ä°', 'İ')
-      .replaceAll('Ã‡', 'Ç')
-      .replaceAll('Åž', 'Ş')
-      .replaceAll('Äž', 'Ğ')
-      .replaceAll('Ã–', 'Ö')
-      .replaceAll('Ãœ', 'Ü');
-  }
-
+  
 }
