@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:recipeapp/models/recipe_model.dart';
 import 'package:recipeapp/pages/add_recipe.dart';
 import 'package:recipeapp/pages/recipe_screen.dart';
+import 'package:recipeapp/repositories/bookmark_repository.dart';
 import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
@@ -13,20 +16,56 @@ class Recorded extends StatefulWidget {
 }
 
 class _RecordedState extends State<Recorded> {
-  
   List<RecipeModel> _recipes = [];
   bool isLoading = true;
 
+  final BookmarkRepository _bookmarkRepository = BookmarkRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarks();
+  }
+
+  Future<void> _loadBookmarks() async {
+  try {
+    final token = await LocalStorageService.getToken();
+    final userId = await LocalStorageService.getUserId();
+   // Token ve userId'yi kontrol et
+    print("Token: $token, UserId: $userId");
+    if (token == null || userId == null) {
+      print("Token veya userId null. Token: $token, userId: $userId");
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    print("Yer işaretleri yükleniyor...");
+    final recipes = await _bookmarkRepository.getBookmarks(userId, token);
+
+    print("Alınan tarif sayısı: ${recipes.length}");
+    print("İlk tarif (varsa): ${recipes.isNotEmpty ? recipes.first.title : 'N/A'}");
+
+    setState(() {
+      _recipes = recipes;
+      isLoading = false;
+    });
+  } catch (e) {
+    print("Yer işaretleri yüklenirken hata: $e");
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
   @override
   Widget build(BuildContext context) {
+     print("Build çalışıyor. isLoading: $isLoading, _recipes.length: ${_recipes.length}");
     return Scaffold(
-            appBar: AppBar(
+      appBar: AppBar(
         automaticallyImplyLeading: false,
         centerTitle: true,
-        title: const Text(
-          'Tarif Defterim',
-          textAlign: TextAlign.center,
-        ),
+        title: const Text('Tarif Defterim', textAlign: TextAlign.center),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -37,22 +76,32 @@ class _RecordedState extends State<Recorded> {
         ),
         child: Column(
           children: [
-            
-            Container(
-              height: MediaQuery.of(context).size.height,
-              width: MediaQuery.of(context).size.width,
-              child: SizedBox(
-                height: 200,
+            if (isLoading)
+              Center(
+                child: CircularProgressIndicator(),
+              )
+            else if (_recipes.isEmpty)
+              Center(
+                child: Text(
+                  "Kayıtlı tarif bulunamadı.",
+                  style: TextStyle(fontSize: 18),
+                ),
+              )
+            else
+              Container(
+                height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
                 child: ListView.builder(
                   itemBuilder: (context, index) {
+                    final recipe = _recipes[index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GestureDetector(
                         onTap: () {
-                          Navigator.push(
+                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => RecipeScreen(),
+                              builder: (context) => RecipeScreen(recipe: recipe),
                             ),
                           );
                         },
@@ -63,12 +112,14 @@ class _RecordedState extends State<Recorded> {
                               width: 550,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
-                                image: DecorationImage(
-                                  image: AssetImage(
-                                    "assets/images/screen1.jpg",
-                                  ),
-                                  fit: BoxFit.cover,
-                                ),
+                                image: recipe.image != null
+                                    ? DecorationImage(
+                                        image: MemoryImage(
+                                          base64Decode(recipe.image!),
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
                             ),
                             Positioned(
@@ -81,8 +132,10 @@ class _RecordedState extends State<Recorded> {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
-                                  "Tür Adı",
-                                  style: Theme.of(context).textTheme.bodyMedium
+                                  recipe.foodType,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
                                       ?.copyWith(color: Colors.white),
                                 ),
                               ),
@@ -101,17 +154,16 @@ class _RecordedState extends State<Recorded> {
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     Text(
-                                      "Yemek Adı",
+                                      recipe.title,
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyMedium
                                           ?.copyWith(color: Colors.white),
                                       maxLines: 2,
                                     ),
-
                                     SizedBox(height: 8),
                                     Text(
-                                      "Süre | Kaç Kişilik",
+                                      "${recipe.prepTime} dk | ${recipe.servings} Kişilik",
                                       style: Theme.of(context)
                                           .textTheme
                                           .bodyMedium
@@ -127,13 +179,11 @@ class _RecordedState extends State<Recorded> {
                       ),
                     );
                   },
-
-                  itemCount: 10,
+                  itemCount: _recipes.length, // Dinamik olarak listenin boyutunu al
                   scrollDirection: Axis.vertical,
                   padding: EdgeInsets.only(bottom: 150, right: 14, left: 14),
                 ),
               ),
-            ),
           ],
         ),
       ),

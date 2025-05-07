@@ -584,6 +584,12 @@ class _AddRecipeState extends State<AddRecipe> {
     }
 
     try {
+       print("Tarif adı: ${_detailController.text}");
+    print("Süre: ${_durationController.text}");
+    print("Porsiyon: ${_portionController.text}");
+    print("Adımlar: $steps");
+    print("Seçilen malzemeler: $ingredients");
+    print("Resim yolu: ${_image?.path}");
       final repository = AddrecipeRepository();
 
       // Debug logları

@@ -11,7 +11,7 @@ class BookmarkModel {
 
   factory BookmarkModel.fromJson(Map<String, dynamic> json) {
     return BookmarkModel(
-      id: json['_id'] ?? '',
+      id: json['id'] ?? '',
       userId: json['user'] ?? '',
       recipeId: json['recipe'] ?? '',
     );

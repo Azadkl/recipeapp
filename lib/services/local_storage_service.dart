@@ -25,4 +25,15 @@ class LocalStorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
+  // Bookmark durumunu kaydetme
+  static Future<void> saveBookmarkStatus(String recipeId, bool isBookmarked) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('bookmark_$recipeId', isBookmarked);
+  }
+
+  // Bookmark durumunu alma
+  static Future<bool?> getBookmarkStatus(String recipeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('bookmark_$recipeId');
+  }
 }

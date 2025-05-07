@@ -1,9 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:recipeapp/datasources/auth_remote_datasource.dart';
+import 'package:recipeapp/models/recipe_model.dart';
 import 'package:recipeapp/models/user_model.dart';
 import 'package:recipeapp/pages/recipe_screen.dart';
+import 'package:recipeapp/repositories/recipe_repository.dart';
 import 'package:recipeapp/services/local_storage_service.dart';
-import 'package:recipeapp/widget/widget_support.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -13,81 +16,66 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  // Örnek tarif verileri
-  final List<Map<String, dynamic>> recipes = [
-    {
-      'name': 'Köfte',
-      'category': 'Yemek',
-      'portion': '3-4 Kişilik',
-      'time': '30 dk',
-    },
-    {
-      'name': 'Sütlaç',
-      'category': 'Tatlı',
-      'portion': '5+ Kişilik',
-      'time': '60+ dk',
-    },
-    {
-      'name': 'Mercimek Çorbası',
-      'category': 'Çorba',
-      'portion': '3-4 Kişilik',
-      'time': '45 dk',
-    },
-    {
-      'name': 'Limonata',
-      'category': 'İçecek',
-      'portion': '5+ Kişilik',
-      'time': '15 dk',
-    },
-    {
-      'name': 'Karnıyarık',
-      'category': 'Yemek',
-      'portion': '3-4 Kişilik',
-      'time': '60+ dk',
-    },
-  ];
-
-  // Arama fonksiyonu
-  List<Map<String, dynamic>> searchRecipes(String query) {
-    if (query.isEmpty) {
-      return recipes;
-    }
-
-    return recipes.where((recipe) {
-      return recipe['name'].toLowerCase().contains(query.toLowerCase());
-    }).toList();
-  }
-
+  List<RecipeModel> recipes = [];
+  List<RecipeModel> displayedRecipes = [];
   UserModel? user;
   bool isLoading = true;
+  final RecipeRepository _recipeRepository = RecipeRepository();
+  String? _authToken;
+  final SearchController _searchController = SearchController();
+
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    _loadUserAndRecipes().then((value){setState(() {
+      
+    });});
   }
 
-  Future<void> _loadUser() async {
+  Future<void> _loadUserAndRecipes() async {
     try {
       final token = await LocalStorageService.getToken();
-
       if (token != null) {
+        _authToken = token;
         final userRemoteDataSource = AuthRemoteDataSource();
-        final fetchedUser = await userRemoteDataSource.getUserDetail(token);
+        user = await userRemoteDataSource.getUserDetail(token);
 
-        setState(() {
-          user = fetchedUser;
-          isLoading = false;
-        });
-      } else {
-        throw Exception("Kullanıcı oturumu bulunamadı.");
+        recipes = await _recipeRepository.getAllRecipes(token);
+        print("API'den gelen tarif sayısı: ${recipes.length}"); // 
+        displayedRecipes = List.from(recipes);
       }
     } catch (e) {
-      print("Hata: $e");
-      setState(() {
-        isLoading = false;
-      });
+      print("Error: $e");
+    } finally {
+      setState(() => isLoading = false);
     }
+    print("📦 Toplam tarif yüklendi: ${recipes.length}");
   }
+
+Future<void> _searchRecipes(String query) async {
+  print("🔍 Aranan kelime: $query");
+
+  setState(() {
+    if (query.isEmpty) {
+      displayedRecipes = List.from(recipes);
+      print("📋 Boş arama: ${displayedRecipes.length} tarif listelendi.");
+    } else {
+      displayedRecipes = recipes.where((recipe) {
+        final title = recipe.title.toLowerCase();
+        final search = query.toLowerCase();
+        final matches = title.contains(search);
+
+        print(
+          "🎯 Kontrol edilen tarif: ${recipe.title} - Eşleşme: $matches",
+        );
+
+        return matches;
+      }).toList();
+      print("🔎 Eşleşen tarif sayısı: ${displayedRecipes.length}");
+    }
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -102,8 +90,7 @@ class _HomeState extends State<Home> {
                     context,
                   ).textTheme.titleLarge?.copyWith(color: Colors.white),
                 )
-                : Center(child: Text("")),
-
+                : const SizedBox.shrink(),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -130,7 +117,7 @@ class _HomeState extends State<Home> {
                 viewHintText: "Tarifleri Arayın",
                 builder: (BuildContext context, SearchController controller) {
                   return SearchBar(
-                    controller: controller,
+                    controller: _searchController,
                     hintText: "Tarifleri Arayın",
                     backgroundColor: MaterialStateProperty.all(Colors.white),
                     padding: const WidgetStatePropertyAll<EdgeInsets>(
@@ -139,8 +126,10 @@ class _HomeState extends State<Home> {
                     onTap: () {
                       controller.openView();
                     },
-                    onChanged: (_) {
-                      controller.openView();
+                    onChanged: (value) {
+                      print("🔄 Arama kutusu değişti: $value");
+                      _searchController.text = value;
+                      _searchRecipes(value);
                     },
                     leading: const Icon(Icons.search),
                   );
@@ -149,25 +138,17 @@ class _HomeState extends State<Home> {
                   BuildContext context,
                   SearchController controller,
                 ) {
-                  // Arama sonuçları
-                  List<Map<String, dynamic>> searchResults = searchRecipes(
-                    controller.text,
-                  );
-
                   return [
-                    // Sonuç başlığı
                     Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Text(
                         controller.text.isEmpty
-                            ? 'Tüm Tarifler (${searchResults.length})'
-                            : 'Arama Sonuçları (${searchResults.length})',
+                            ? 'Tüm Tarifler (${displayedRecipes.length})'
+                            : 'Arama Sonuçları (${displayedRecipes.length})',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),
-
-                    // Sonuçlar listesi
-                    if (searchResults.isEmpty)
+                    if (displayedRecipes.isEmpty)
                       const Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Center(
@@ -177,274 +158,167 @@ class _HomeState extends State<Home> {
                         ),
                       )
                     else
-                      ...searchResults
-                          .map(
-                            (recipe) => ListTile(
-                              title: Text(recipe['name']),
-                              subtitle: Text(
-                                '${recipe['category']} • ${recipe['portion']} • ${recipe['time']}',
-                              ),
-                              leading: CircleAvatar(
-                                backgroundColor: _getCategoryColor(
-                                  recipe['category'],
-                                ),
-                                child: Text(
-                                  recipe['name'][0],
-                                  style: const TextStyle(color: Colors.white),
-                                ),
-                              ),
-                              onTap: () {
-                                controller.closeView(recipe['name']);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => RecipeScreen(),
-                                  ),
-                                );
-                              },
+                      ...displayedRecipes.map(
+                        (recipe) => ListTile(
+                          title: Text(recipe.title),
+                          subtitle: Text(
+                            '${recipe.foodType ?? 'Belirtilmemiş'} • ${recipe.servings ?? 1} • ${recipe.prepTime ?? 0} dk',
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: _getCategoryColor(
+                              recipe.foodType ?? '',
                             ),
-                          )
-                          .toList(),
+                            child: Text(
+                              recipe.title.isNotEmpty ? recipe.title[0] : '?',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          onTap: () {
+                            controller.closeView(recipe.title);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => RecipeScreen(recipe: recipe),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                   ];
                 },
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Popüler Tarifler",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  //    TextButton(onPressed: () {}, child: Text("Tümünü gör")),
-                ],
-              ),
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              height: 280,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RecipeScreen()),
-                  );
-                },
-                child: ListView.separated(
-                  itemBuilder: (context, index) {
-                    return SizedBox(
-                      height: 280,
-                      width: 200,
-                      child: Stack(
-                        children: [
-                          Container(
-                            height: 280,
-                            width: 200,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              image: DecorationImage(
-                                image: AssetImage("assets/images/screen1.jpg"),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            top: 8,
-                            left: 8,
-                            child: Container(
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                "Tür Adı",
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: Colors.white),
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 8,
-                            left: 8,
-                            right: 8,
-                            child: Container(
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          "Yemek Adı",
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(color: Colors.white),
-                                          maxLines: 2,
-                                        ),
-                                      ),
-                                      SizedBox(width: 16),
-                                      Icon(
-                                        Icons.bookmark_outline,
-                                        size: 20,
-                                        color: Colors.white,
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    "Süre | Kaç Kişilik",
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(color: Colors.white),
-                                    maxLines: 2,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  separatorBuilder: (_, __) {
-                    return SizedBox(width: 16);
-                  },
-                  itemCount: 10,
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 24),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Son Yüklenen Tarifler",
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  // TextButton(onPressed: () {}, child: Text("Tümünü gör")),
-                ],
-              ),
-            ),
-            SizedBox(height: 8),
-            SizedBox(
-              height: 280,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RecipeScreen()),
-                  );
-                },
-                child: ListView.separated(
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        Container(
-                          height: 280,
-                          width: 200,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            image: DecorationImage(
-                              image: AssetImage("assets/images/screen1.jpg"),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              "Tür Adı",
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 8,
-                          left: 8,
-                          right: 8,
-                          child: Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        "Yemek Adı",
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(color: Colors.white),
-                                        maxLines: 2,
-                                      ),
-                                    ),
-                                    SizedBox(width: 16),
-                                    Icon(
-                                      Icons.bookmark_outline,
-                                      size: 20,
-                                      color: Colors.white,
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  "Süre | Kaç Kişilik",
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(color: Colors.white),
-                                  maxLines: 2,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                  separatorBuilder: (_, __) {
-                    return SizedBox(width: 16);
-                  },
-                  itemCount: 10,
-                  scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: 24),
-                ),
-              ),
-            ),
+            _buildRecipeSection("Popüler Tarifler", displayedRecipes),
+            _buildRecipeSection("Son Yüklenen Tarifler", displayedRecipes),
           ],
         ),
       ),
     );
   }
 
-  // Kategori renklerini belirleyen yardımcı fonksiyon
+  Widget _buildRecipeSection(String title, List<RecipeModel> recipesToShow) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 280,
+          child: ListView.separated(
+            itemCount: recipesToShow.length > 10 ? 10 : recipesToShow.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            itemBuilder: (context, index) {
+              final recipe = recipesToShow[index];
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => RecipeScreen(recipe: recipe),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 200,
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          image:
+                              recipe.image != null
+                                  ? DecorationImage(
+                                    image: MemoryImage(
+                                      base64Decode(recipe.image!),
+                                    ),
+                                    fit: BoxFit.cover,
+                                  )
+                                  : null,
+                        ),
+                      ),
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            recipe.foodType ?? 'Belirtilmemiş',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 8,
+                        left: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      recipe.title,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(color: Colors.white),
+                                      maxLines: 2,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Icon(
+                                    Icons.bookmark_outline,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                "${recipe.prepTime ?? 0} dk | ${recipe.servings ?? 1} Kişilik",
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(color: Colors.white),
+                                maxLines: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Color _getCategoryColor(String category) {
     switch (category) {
       case 'Tatlı':

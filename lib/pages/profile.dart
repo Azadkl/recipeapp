@@ -1,10 +1,13 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:recipeapp/datasources/auth_remote_datasource.dart';
+import 'package:recipeapp/datasources/recipe_remote_datasource.dart'; // Eklendi
+import 'package:recipeapp/models/recipe_model.dart'; // Eklendi
 import 'package:recipeapp/models/user_model.dart';
 import 'package:recipeapp/pages/login.dart';
 import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
-
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -15,29 +18,51 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   UserModel? user;
+  List<RecipeModel> userRecipes = []; // Kullanıcının tarifleri için liste
+  bool isLoading = true; // Yükleme durumu için flag
+
   @override
   void initState() {
     super.initState();
-    _loadUser();
+    _loadUserAndRecipes();
   }
 
-  Future<void> _loadUser() async {
+  // Kullanıcı bilgilerini ve tariflerini yükle
+  Future<void> _loadUserAndRecipes() async {
+    setState(() {
+      isLoading = true;
+    });
+    
     try {
       final token = await LocalStorageService.getToken();
+      final userId = await LocalStorageService.getUserId();
 
       if (token != null) {
+        // Kullanıcı bilgilerini yükle
         final userRemoteDataSource = AuthRemoteDataSource();
         final fetchedUser = await userRemoteDataSource.getUserDetail(token);
-
+        
+        // Kullanıcının tariflerini yükle
+        final recipeRemoteDataSource = RecipeRemoteDatasource();
+        final recipes = await recipeRemoteDataSource.getAllRecipes(token);
+        
+        // Sadece kullanıcıya ait tarifleri filtrele (API'niz bunu destekliyorsa)
+        // Eğer API'niz kullanıcıya özel tarif filtreleme desteği sunmuyorsa,
+        // bu kısmı uygun şekilde düzenlemeniz gerekebilir
+        
         setState(() {
           user = fetchedUser;
+          userRecipes = recipes;
+          isLoading = false;
         });
       } else {
         throw Exception("Kullanıcı oturumu bulunamadı.");
       }
     } catch (e) {
       print("Hata: $e");
-      setState(() {});
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -57,36 +82,6 @@ class _ProfileState extends State<Profile> {
 
   @override
   Widget build(BuildContext context) {
-    // Sample data - in a real app, this would come from your database
-    final String username = "Azad Köl";
-
-    final List<Recipe> userRecipes = [
-      Recipe(
-        title: "Köfte",
-        imageUrl:
-            "https://cdn.pixabay.com/photo/2019/06/03/22/06/meatballs-4250143_1280.jpg",
-        duration: "30 dakika",
-      ),
-      Recipe(
-        title: "Mercimek Çorbası",
-        imageUrl:
-            "https://cdn.pixabay.com/photo/2020/03/22/16/18/soup-4957079_1280.jpg",
-        duration: "45 dakika",
-      ),
-      Recipe(
-        title: "Baklava",
-        imageUrl:
-            "https://cdn.pixabay.com/photo/2015/11/19/11/53/baklava-1050973_1280.jpg",
-        duration: "2 saat",
-      ),
-      Recipe(
-        title: "Karnıyarık",
-        imageUrl:
-            "https://cdn.pixabay.com/photo/2021/01/10/03/43/turkish-food-5904221_1280.jpg",
-        duration: "1 saat",
-      ),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -99,84 +94,102 @@ class _ProfileState extends State<Profile> {
             icon: const Icon(Icons.exit_to_app),
             onPressed: _logout,  // Çıkış yap butonuna tıklandığında _logout çağrılır
           ),
-          
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile header section
-            Container(
-              padding: const EdgeInsets.only(top: 20),
-              child: Column(
-                children: [
-                  // Profile image
-                  CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.black, // Arka plan rengi
-                    child: Icon(Icons.person, size: 50, color: Colors.white),
-                  ),
+      body: isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+          child: Column(
+            children: [
+              // Profile header section
+              Container(
+                padding: const EdgeInsets.only(top: 20),
+                child: Column(
+                  children: [
+                    // Profile image
+                    CircleAvatar(
+                      radius: 60,
+                      backgroundColor: Colors.black, // Arka plan rengi
+                      child: Icon(Icons.person, size: 50, color: Colors.white),
+                    ),
 
-                  const SizedBox(height: 16),
-                  user != null
-                      ? Text(
-                          "${user!.username}",
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        )
-                      : Text(
-                          "",
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleMedium
-                              ?.copyWith(color: Colors.black),
-                        ),
-                ],
+                    const SizedBox(height: 16),
+                    user != null
+                        ? Text(
+                            "${user!.username}",
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          )
+                        : Text(
+                            "",
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(color: Colors.black),
+                          ),
+                  ],
+                ),
               ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Tariflerim",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      // Navigate to all recipes page
-                    },
-                    child: const Text("Tümünü Gör"),
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Tariflerim",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to all recipes page
+                      },
+                      child: const Text("Tümünü Gör"),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            // Recipes grid
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: userRecipes.length,
-              itemBuilder: (context, index) {
-                return RecipeCard(recipe: userRecipes[index]);
-              },
-            ),
+              // Recipes grid - Gerçek verilerle
+              userRecipes.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20.0),
+                      child: Text(
+                        "Henüz tarif eklenmemiş.",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.75,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: userRecipes.length,
+                  itemBuilder: (context, index) {
+                    final recipe = userRecipes[index];
+                    return RecipeCard(
+                      recipe: Recipe(
+                        title: recipe.title ?? "İsimsiz Tarif",
+                        imageUrl: recipe.image ?? "https://placeholder.com/food",
+                        duration: "${recipe.prepTime ?? '?'} dakika",
+                      ),
+                    );
+                  },
+                ),
 
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
-      ),
     );
   }
 }
@@ -208,8 +221,13 @@ class RecipeCard extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage("assets/images/screen1.jpg"),
+                  // Gerçek resim URL'si kullanılıyor
+                  image: MemoryImage(base64Decode(recipe.imageUrl)),
                   fit: BoxFit.cover,
+                  onError: (exception, stackTrace) {
+                    // Resim yüklenemezse varsayılan resim göster
+                    print("Resim yüklenemedi: $exception");
+                  },
                 ),
               ),
             ),

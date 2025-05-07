@@ -1,9 +1,17 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:recipeapp/models/bookmark_model.dart';
+import 'package:recipeapp/models/recipe_model.dart';
+import 'package:recipeapp/repositories/bookmark_repository.dart';
+import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
 class RecipeScreen extends StatefulWidget {
-  const RecipeScreen({super.key});
+  final RecipeModel recipe;
+  const RecipeScreen({super.key, required this.recipe});
 
   @override
   State<RecipeScreen> createState() => _RecipeScreenState();
@@ -12,18 +20,68 @@ class RecipeScreen extends StatefulWidget {
 class _RecipeScreenState extends State<RecipeScreen> {
   bool isLiked = false;
   bool isSelected = false;
+  Uint8List? imageBytes;
+  @override
+void initState() {
+  super.initState();
+  if (widget.recipe.image != null) {
+    imageBytes = base64Decode(widget.recipe.image!);
+  }
+  // Modelden gelen başlangıç değerlerini al
+  isLiked = widget.recipe.isLiked ?? false;
+
+  // Yerel depolamadan yer işareti durumunu al
+  LocalStorageService.getBookmarkStatus(widget.recipe.id).then((status) {
+    setState(() {
+      isSelected = status ?? widget.recipe.isBookmarked ?? false;
+    });
+  });
+}
+
+Future<void> toggleBookmarkStatus() async {
+  final token = await LocalStorageService.getToken();
+  if (token == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Lütfen giriş yapın!")),
+    );
+    return;
+  }
+
+  try {
+    // API'ye toggle isteği gönder (ekle/kaldır)
+    final response = await BookmarkRepository().addBookmark(widget.recipe.id, token);
+    
+    // Backend yanıtına göre durumu güncelle
+    setState(() {
+      isSelected = response.isBookmarked;
+    });
+
+    // Yerel depolamaya güncellenmiş durumu kaydet
+    await LocalStorageService.saveBookmarkStatus(widget.recipe.id, isSelected);
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Hata: $e")),
+    );
+  }
+}
+
   @override
   Widget build(BuildContext context) {
+    final recipe = widget.recipe;
     return Scaffold(
       body: Stack(
         children: [
           Container(
             decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/screen2.jpg"),
-                fit: BoxFit.cover,
-              ),
+              image:
+                  imageBytes != null
+                      ? DecorationImage(
+                        image: MemoryImage(imageBytes!),
+                        fit: BoxFit.cover,
+                      )
+                      : null,
             ),
+
             child: Container(
               width: MediaQuery.of(context).size.width,
               height: MediaQuery.of(context).size.height,
@@ -70,15 +128,11 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
-                                    "Makarna",
+                                    recipe.title,
                                     style: AppWidget.semiBoldTextFeildStyle(),
                                   ),
                                   InkWell(
-                                    onTap: () {
-                                      setState(() {
-                                        isSelected = !isSelected;
-                                      });
-                                    },
+                                    onTap: toggleBookmarkStatus,
                                     child: Row(
                                       children: [
                                         Text(
@@ -133,7 +187,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                               0.03,
                                         ),
                                         Text(
-                                          "Azad Köl",
+                                          recipe.username,
                                           style: Theme.of(
                                             context,
                                           ).textTheme.titleMedium?.copyWith(
@@ -178,14 +232,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 "Nasıl Yapılır ?",
                                 style: AppWidget.semiBoldTextFeildStyle(),
                               ),
-                              for (var items in [
-                                "Bir tencereye suyu koyup kaynatın.",
-                                "Kaynayan suya tuz ve sıvı yağı ekleyin.",
-                                "Makarnayı suya atarak 8-10 dakika haşlayın.",
-                                "Haşlanan makarnayı süzün ve soğuk sudan geçirin.",
-                                "Tereyağını tavada eritip makarnayı ekleyin, karıştırın.",
-                                "Üzerine rendelenmiş peynir ekleyerek servis edin.",
-                              ])
+                              for (var items in recipe.instructions)
                                 Row(
                                   children: [
                                     Icon(
@@ -206,7 +253,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 style: AppWidget.semiBoldTextFeildStyle(),
                               ),
                               Text(
-                                "Tatlı",
+                                recipe.foodType,
                                 style: AppWidget.LightTextFeildStyle(),
                               ),
                               Divider(thickness: 1.0),
@@ -215,16 +262,16 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 style: AppWidget.semiBoldTextFeildStyle(),
                               ),
                               Text(
-                                "30",
+                                "${recipe.prepTime}",
                                 style: AppWidget.LightTextFeildStyle(),
                               ),
-                               Divider(thickness: 1.0),
+                              Divider(thickness: 1.0),
                               Text(
                                 "Kaç Kişilik",
                                 style: AppWidget.semiBoldTextFeildStyle(),
                               ),
                               Text(
-                                "4",
+                                "${recipe.servings}",
                                 style: AppWidget.LightTextFeildStyle(),
                               ),
                               Divider(thickness: 1.0),
@@ -232,13 +279,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 "İçindekiler",
                                 style: AppWidget.semiBoldTextFeildStyle(),
                               ),
-                              for (var item in [
-                                "1 paket makarna",
-                                "1,5 litre su",
-                                "1 tatlı kaşığı tuz",
-                                "1 yemek kaşığı sıvı yağ",
-                                "Sos için: Tereyağı ve rendelenmiş peynir",
-                              ])
+                              for (var item in recipe.ingredients)
                                 Row(
                                   children: [
                                     Icon(Icons.check_box, color: Colors.amber),
