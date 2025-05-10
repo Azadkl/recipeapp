@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:recipeapp/models/bookmark_model.dart';
 import 'package:recipeapp/models/recipe_model.dart';
 import 'package:recipeapp/repositories/bookmark_repository.dart';
+import 'package:recipeapp/repositories/islike_repository.dart';
 import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
 
@@ -22,48 +23,93 @@ class _RecipeScreenState extends State<RecipeScreen> {
   bool isSelected = false;
   Uint8List? imageBytes;
   @override
-void initState() {
-  super.initState();
-  if (widget.recipe.image != null) {
-    imageBytes = base64Decode(widget.recipe.image!);
-  }
-  // Modelden gelen başlangıç değerlerini al
-  isLiked = widget.recipe.isLiked ?? false;
-
-  // Yerel depolamadan yer işareti durumunu al
-  LocalStorageService.getBookmarkStatus(widget.recipe.id).then((status) {
-    setState(() {
-      isSelected = status ?? widget.recipe.isBookmarked ?? false;
-    });
-  });
-}
-
-Future<void> toggleBookmarkStatus() async {
-  final token = await LocalStorageService.getToken();
-  if (token == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Lütfen giriş yapın!")),
-    );
-    return;
-  }
-
-  try {
-    // API'ye toggle isteği gönder (ekle/kaldır)
-    final response = await BookmarkRepository().addBookmark(widget.recipe.id, token);
-    
-    // Backend yanıtına göre durumu güncelle
-    setState(() {
-      isSelected = response.isBookmarked;
+  void initState() {
+    super.initState();
+    if (widget.recipe.image != null) {
+      imageBytes = base64Decode(widget.recipe.image!);
+    }
+    // Yerel depolamadan beğeni durumunu al
+    LocalStorageService.getLikeStatus(widget.recipe.id).then((status) {
+      setState(() {
+        isLiked = status ?? widget.recipe.isLiked ?? false;
+      });
     });
 
-    // Yerel depolamaya güncellenmiş durumu kaydet
-    await LocalStorageService.saveBookmarkStatus(widget.recipe.id, isSelected);
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Hata: $e")),
-    );
+    // Yerel depolamadan yer işareti durumunu al
+    LocalStorageService.getBookmarkStatus(widget.recipe.id).then((status) {
+      setState(() {
+        isSelected = status ?? widget.recipe.isBookmarked ?? false;
+      });
+    });
   }
-}
+
+  Future<void> toggleBookmarkStatus() async {
+    final token = await LocalStorageService.getToken();
+    if (token == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Lütfen giriş yapın!")));
+      return;
+    }
+
+    try {
+      // API'ye toggle isteği gönder (ekle/kaldır)
+      final response = await BookmarkRepository().addBookmark(
+        widget.recipe.id,
+        token,
+      );
+
+      // Backend yanıtına göre durumu güncelle
+      setState(() {
+        isSelected = response.isBookmarked;
+      });
+
+      // Yerel depolamaya güncellenmiş durumu kaydet
+      await LocalStorageService.saveBookmarkStatus(
+        widget.recipe.id,
+        isSelected,
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Hata: $e")));
+    }
+  }
+
+  // Yeni fonksiyon: Like durumu değiştirme
+  Future<void> toggleLikeStatus() async {
+    final token = await LocalStorageService.getToken();
+    if (token == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Lütfen giriş yapın!")));
+      return;
+    }
+
+    try {
+      // API'ye toggle isteği gönder (like ekle/kaldır)
+      final response = await LikeRepository().toggleLike(
+        widget.recipe.id,
+        token,
+      ); // Burada `addBookmark` yerine beğeni API'yi çağırmalısınız.
+
+      // Backend yanıtına göre durumu güncelle
+      setState(() {
+        isLiked = response.isLiked;
+        
+      });
+
+      // Yerel depolamaya güncellenmiş durumu kaydet
+      await LocalStorageService.saveLikeStatus(
+        widget.recipe.id,
+        isLiked,
+      ); // Yerel depolama için yeni bir fonksiyon yazılabilir
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Hata: $e")));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +256,7 @@ Future<void> toggleBookmarkStatus() async {
                                             0.01,
                                       ),
                                       Text(
-                                        "260k beğeni",
+                                        "${recipe.likesCount} beğeni",
                                         style: Theme.of(
                                           context,
                                         ).textTheme.titleMedium?.copyWith(
@@ -327,11 +373,7 @@ Future<void> toggleBookmarkStatus() async {
             top: 60,
             right: 10,
             child: InkWell(
-              onTap: () {
-                setState(() {
-                  isLiked = !isLiked;
-                });
-              },
+              onTap: toggleLikeStatus,
               child: Container(
                 width: MediaQuery.of(context).size.width * 0.12,
                 height: MediaQuery.of(context).size.height * 0.06,

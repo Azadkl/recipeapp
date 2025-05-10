@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Colors.black, Color.fromARGB(255, 255, 0, 0)],
+                    colors:  [Color.fromARGB(255, 255, 0, 0),Colors.black],
                   ),
                 ),
               ),
@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Text(""),
               ),
               Container(
-                margin: EdgeInsets.only(top: 50, left: 20.0, right: 20.0),
+                margin: EdgeInsets.only(top: 10, left: 20.0, right: 20.0),
                 child: Column(
                   children: [
                     Center(
@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    SizedBox(height: 50.0),
+                    SizedBox(height: 20.0),
                     Material(
                       elevation: 5.0,
                       borderRadius: BorderRadius.circular(20),

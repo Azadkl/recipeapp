@@ -36,4 +36,15 @@ class LocalStorageService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool('bookmark_$recipeId');
   }
+    // Like durumunu kaydetme
+  static Future<void> saveLikeStatus(String recipeId, bool isLiked) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('like_$recipeId', isLiked);
+  }
+
+  // Like durumunu alma
+  static Future<bool?> getLikeStatus(String recipeId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('like_$recipeId');
+  }
 }

@@ -11,7 +11,7 @@ class RecipeModel {
   final int servings;
   final bool? isBookmarked; // Yeni alan
   final bool? isLiked;      // Yeni alan
-
+ final int likesCount; 
   RecipeModel({
     required this.id,
     required this.title,
@@ -25,6 +25,7 @@ class RecipeModel {
     required this.servings,
     this.isBookmarked,
     this.isLiked,
+    required this.likesCount, 
   });
 
   factory RecipeModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +46,9 @@ class RecipeModel {
           : int.tryParse(json['servings']?.toString() ?? '1') ?? 1,
       isBookmarked: json['isBookmarked'] as bool?, // Yeni alan
       isLiked: json['isLiked'] as bool?,           // Yeni alan
+      likesCount: json['likes_count'] is int
+          ? json['likes_count']
+          : int.tryParse(json['likes_count']?.toString() ?? '0') ?? 0,  // Yeni alan
     );
   }
 
