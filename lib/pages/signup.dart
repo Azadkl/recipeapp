@@ -1,6 +1,8 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:recipeapp/models/user_model.dart';
+import 'package:recipeapp/pages/bottomnav.dart';
+import 'package:recipeapp/pages/home.dart';
 import 'package:recipeapp/pages/login.dart';
 import 'package:recipeapp/repositories/auth_repository.dart';
 import 'package:recipeapp/widget/widget_support.dart';
@@ -175,6 +177,21 @@ class _SignupState extends State<Signup> {
                       },
                       child: Text(
                         "Zaten bir hesabınız var mı ? Giriş Yap.",
+                        style: AppWidget.semiBoldTextFeildStyle(),
+                      ),
+                    ),
+                    SizedBox(height: 20.0),
+                       GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Bottomnav(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Hesap oluşturmadan devam et.",
                         style: AppWidget.semiBoldTextFeildStyle(),
                       ),
                     ),

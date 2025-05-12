@@ -32,7 +32,7 @@ class _ProfileState extends State<Profile> {
     setState(() {
       isLoading = true;
     });
-    
+
     try {
       final token = await LocalStorageService.getToken();
       final userId = await LocalStorageService.getUserId();
@@ -41,15 +41,15 @@ class _ProfileState extends State<Profile> {
         // Kullanıcı bilgilerini yükle
         final userRemoteDataSource = AuthRemoteDataSource();
         final fetchedUser = await userRemoteDataSource.getUserDetail(token);
-        
+
         // Kullanıcının tariflerini yükle
         final recipeRemoteDataSource = RecipeRemoteDatasource();
-        final recipes = await recipeRemoteDataSource.getAllRecipes(token);
-        
+        final recipes = await recipeRemoteDataSource.getAllRecipes();
+
         // Sadece kullanıcıya ait tarifleri filtrele (API'niz bunu destekliyorsa)
         // Eğer API'niz kullanıcıya özel tarif filtreleme desteği sunmuyorsa,
         // bu kısmı uygun şekilde düzenlemeniz gerekebilir
-        
+
         setState(() {
           user = fetchedUser;
           userRecipes = recipes;
@@ -69,7 +69,7 @@ class _ProfileState extends State<Profile> {
   // Çıkış yapma fonksiyonu
   void _logout() async {
     try {
-      await LocalStorageService.clearAll();  // Token'ı silin
+      await LocalStorageService.clearAll(); // Token'ı silin
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -92,104 +92,154 @@ class _ProfileState extends State<Profile> {
         actions: [
           IconButton(
             icon: const Icon(Icons.exit_to_app),
-            onPressed: _logout,  // Çıkış yap butonuna tıklandığında _logout çağrılır
+            onPressed:
+                _logout, // Çıkış yap butonuna tıklandığında _logout çağrılır
           ),
         ],
       ),
-      body: isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-          child: Column(
-            children: [
-              // Profile header section
-              Container(
-                padding: const EdgeInsets.only(top: 20),
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : user == null
+              ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Bu sayfayı görüntülemek için giriş yapmanız gerekiyor.",
+                      style: TextStyle(fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.person, color: Colors.white),
+                      label: Text("Giriş yap/Kayıt ol"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+              : SingleChildScrollView(
                 child: Column(
                   children: [
-                    // Profile image
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.black, // Arka plan rengi
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
-                    ),
+                    // Profile header section
+                    Container(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: Column(
+                        children: [
+                          // Profile image
+                          CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.black, // Arka plan rengi
+                            child: Icon(
+                              Icons.person,
+                              size: 50,
+                              color: Colors.white,
+                            ),
+                          ),
 
-                    const SizedBox(height: 16),
-                    user != null
-                        ? Text(
-                            "${user!.username}",
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          const SizedBox(height: 16),
+                          user != null
+                              ? Text(
+                                "${user!.username}",
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.titleLarge?.copyWith(
                                   color: Colors.black,
                                   fontWeight: FontWeight.bold,
                                 ),
-                          )
-                        : Text(
-                            "",
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(color: Colors.black),
+                              )
+                              : Text(
+                                "",
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(color: Colors.black),
+                              ),
+                        ],
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Tariflerim",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
+                          TextButton(
+                            onPressed: () {
+                              // Navigate to all recipes page
+                            },
+                            child: const Text("Tümünü Gör"),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Recipes grid - Gerçek verilerle
+                    userRecipes.isEmpty
+                        ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Text(
+                              "Henüz tarif eklenmemiş.",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        )
+                        : GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                childAspectRatio: 0.75,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                              ),
+                          itemCount: userRecipes.length,
+                          itemBuilder: (context, index) {
+                            final recipe = userRecipes[index];
+                            return RecipeCard(
+                              recipe: Recipe(
+                                title: recipe.title ?? "İsimsiz Tarif",
+                                imageUrl:
+                                    recipe.image ??
+                                    "https://placeholder.com/food",
+                                duration: "${recipe.prepTime ?? '?'} dakika",
+                              ),
+                            );
+                          },
+                        ),
+
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      "Tariflerim",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to all recipes page
-                      },
-                      child: const Text("Tümünü Gör"),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Recipes grid - Gerçek verilerle
-              userRecipes.isEmpty
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20.0),
-                      child: Text(
-                        "Henüz tarif eklenmemiş.",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    ),
-                  )
-                : GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    childAspectRatio: 0.75,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: userRecipes.length,
-                  itemBuilder: (context, index) {
-                    final recipe = userRecipes[index];
-                    return RecipeCard(
-                      recipe: Recipe(
-                        title: recipe.title ?? "İsimsiz Tarif",
-                        imageUrl: recipe.image ?? "https://placeholder.com/food",
-                        duration: "${recipe.prepTime ?? '?'} dakika",
-                      ),
-                    );
-                  },
-                ),
-
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
     );
   }
 }

@@ -3,13 +3,12 @@ import 'package:http/http.dart' as http;
 import '../models/recipe_model.dart';
 
 class RecipeRemoteDatasource {
-  final String baseUrl = 'http://192.168.133.74:8000';
+  final String baseUrl = 'http://192.168.13.74:8000';
 
-Future<List<RecipeModel>> getAllRecipes(String authToken) async {
+Future<List<RecipeModel>> getAllRecipes() async {
   final response = await http.get(
     Uri.parse('$baseUrl/api/recipes/'),
     headers: {
-      'Authorization': 'Bearer $authToken',
       'Accept': 'application/json',
     },
   );

@@ -27,9 +27,9 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    _loadUserAndRecipes().then((value){setState(() {
-      
-    });});
+    _loadUserAndRecipes().then((value) {
+      setState(() {});
+    });
   }
 
   Future<void> _loadUserAndRecipes() async {
@@ -40,8 +40,12 @@ class _HomeState extends State<Home> {
         final userRemoteDataSource = AuthRemoteDataSource();
         user = await userRemoteDataSource.getUserDetail(token);
 
-        recipes = await _recipeRepository.getAllRecipes(token);
-        print("API'den gelen tarif sayısı: ${recipes.length}"); // 
+        recipes = await _recipeRepository.getAllRecipes();
+        print("API'den gelen tarif sayısı: ${recipes.length}"); //
+        displayedRecipes = List.from(recipes);
+      } else if (token == null) {
+        recipes = await _recipeRepository.getAllRecipes();
+        print("API'den gelen tarif sayısı: ${recipes.length}"); //
         displayedRecipes = List.from(recipes);
       }
     } catch (e) {
@@ -52,30 +56,30 @@ class _HomeState extends State<Home> {
     print("📦 Toplam tarif yüklendi: ${recipes.length}");
   }
 
-Future<void> _searchRecipes(String query) async {
-  print("🔍 Aranan kelime: $query");
+  Future<void> _searchRecipes(String query) async {
+    print("🔍 Aranan kelime: $query");
 
-  setState(() {
-    if (query.isEmpty) {
-      displayedRecipes = List.from(recipes);
-      print("📋 Boş arama: ${displayedRecipes.length} tarif listelendi.");
-    } else {
-      displayedRecipes = recipes.where((recipe) {
-        final title = recipe.title.toLowerCase();
-        final search = query.toLowerCase();
-        final matches = title.contains(search);
+    setState(() {
+      if (query.isEmpty) {
+        displayedRecipes = List.from(recipes);
+        print("📋 Boş arama: ${displayedRecipes.length} tarif listelendi.");
+      } else {
+        displayedRecipes =
+            recipes.where((recipe) {
+              final title = recipe.title.toLowerCase();
+              final search = query.toLowerCase();
+              final matches = title.contains(search);
 
-        print(
-          "🎯 Kontrol edilen tarif: ${recipe.title} - Eşleşme: $matches",
-        );
+              print(
+                "🎯 Kontrol edilen tarif: ${recipe.title} - Eşleşme: $matches",
+              );
 
-        return matches;
-      }).toList();
-      print("🔎 Eşleşen tarif sayısı: ${displayedRecipes.length}");
-    }
-  });
-}
-
+              return matches;
+            }).toList();
+        print("🔎 Eşleşen tarif sayısı: ${displayedRecipes.length}");
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +94,12 @@ Future<void> _searchRecipes(String query) async {
                     context,
                   ).textTheme.titleLarge?.copyWith(color: Colors.white),
                 )
-                : const SizedBox.shrink(),
+                : Text(
+                  "Merhaba kullanıcı,",
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(color: Colors.white),
+                ),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),

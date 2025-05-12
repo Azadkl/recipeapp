@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:recipeapp/models/bookmark_model.dart';
 import 'package:recipeapp/models/recipe_model.dart';
+import 'package:recipeapp/pages/login.dart';
 import 'package:recipeapp/repositories/bookmark_repository.dart';
 import 'package:recipeapp/repositories/islike_repository.dart';
 import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
+import 'package:recipeapp/widget/widgets.dart';
 
 class RecipeScreen extends StatefulWidget {
   final RecipeModel recipe;
@@ -46,9 +49,17 @@ class _RecipeScreenState extends State<RecipeScreen> {
   Future<void> toggleBookmarkStatus() async {
     final token = await LocalStorageService.getToken();
     if (token == null) {
-      ScaffoldMessenger.of(
+       Widgets.showSnackBar(
         context,
-      ).showSnackBar(SnackBar(content: Text("Lütfen giriş yapın!")));
+        "Hata",
+        "Oturum açmanız gerekiyor",
+        ContentType.failure,
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
       return;
     }
 
@@ -80,9 +91,17 @@ class _RecipeScreenState extends State<RecipeScreen> {
   Future<void> toggleLikeStatus() async {
     final token = await LocalStorageService.getToken();
     if (token == null) {
-      ScaffoldMessenger.of(
+       Widgets.showSnackBar(
         context,
-      ).showSnackBar(SnackBar(content: Text("Lütfen giriş yapın!")));
+        "Hata",
+        "Oturum açmanız gerekiyor",
+        ContentType.failure,
+      );
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (route) => false,
+      );
       return;
     }
 

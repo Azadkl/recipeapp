@@ -103,9 +103,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   return null;
                                 },
                                 decoration: InputDecoration(
-                                  hintText: "Email",
+                                 hintText: "Kullanıcı Adı",
                                   hintStyle: AppWidget.semiBoldTextFeildStyle(),
-                                  prefixIcon: Icon(Icons.email_outlined),
+                                  prefixIcon: Icon(Icons.person),
                                 ),
                               ),
                               SizedBox(height: 30.0),
@@ -196,6 +196,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         "Hesabınız yok mu ? Kayıt olun.",
+                        style: AppWidget.semiBoldTextFeildStyle(),
+                      ),
+                    ),
+                    SizedBox(height: 30.0),
+                       GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => Bottomnav(),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Hesap oluşturmadan devam et.",
                         style: AppWidget.semiBoldTextFeildStyle(),
                       ),
                     ),

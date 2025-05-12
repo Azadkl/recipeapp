@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:recipeapp/models/recipe_model.dart';
 import 'package:recipeapp/pages/add_recipe.dart';
+import 'package:recipeapp/pages/login.dart';
 import 'package:recipeapp/pages/recipe_screen.dart';
 import 'package:recipeapp/repositories/bookmark_repository.dart';
 import 'package:recipeapp/services/local_storage_service.dart';
@@ -18,6 +19,7 @@ class Recorded extends StatefulWidget {
 class _RecordedState extends State<Recorded> {
   List<RecipeModel> _recipes = [];
   bool isLoading = true;
+  bool isLoggedIn = false;
 
   final BookmarkRepository _bookmarkRepository = BookmarkRepository();
 
@@ -28,39 +30,45 @@ class _RecordedState extends State<Recorded> {
   }
 
   Future<void> _loadBookmarks() async {
-  try {
-    final token = await LocalStorageService.getToken();
-    final userId = await LocalStorageService.getUserId();
-   // Token ve userId'yi kontrol et
-    print("Token: $token, UserId: $userId");
-    if (token == null || userId == null) {
-      print("Token veya userId null. Token: $token, userId: $userId");
+    try {
+      final token = await LocalStorageService.getToken();
+      final userId = await LocalStorageService.getUserId();
+      // Token ve userId'yi kontrol et
+      print("Token: $token, UserId: $userId");
+      if (token == null || userId == null) {
+        print("Token veya userId null. Token: $token, userId: $userId");
+        setState(() {
+          isLoading = false;
+          isLoggedIn = true;
+        });
+        return;
+      }
+
+      print("Yer işaretleri yükleniyor...");
+      final recipes = await _bookmarkRepository.getBookmarks(userId, token);
+
+      print("Alınan tarif sayısı: ${recipes.length}");
+      print(
+        "İlk tarif (varsa): ${recipes.isNotEmpty ? recipes.first.title : 'N/A'}",
+      );
+
+      setState(() {
+        _recipes = recipes;
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Yer işaretleri yüklenirken hata: $e");
       setState(() {
         isLoading = false;
       });
-      return;
     }
-
-    print("Yer işaretleri yükleniyor...");
-    final recipes = await _bookmarkRepository.getBookmarks(userId, token);
-
-    print("Alınan tarif sayısı: ${recipes.length}");
-    print("İlk tarif (varsa): ${recipes.isNotEmpty ? recipes.first.title : 'N/A'}");
-
-    setState(() {
-      _recipes = recipes;
-      isLoading = false;
-    });
-  } catch (e) {
-    print("Yer işaretleri yüklenirken hata: $e");
-    setState(() {
-      isLoading = false;
-    });
   }
-}
+
   @override
   Widget build(BuildContext context) {
-     print("Build çalışıyor. isLoading: $isLoading, _recipes.length: ${_recipes.length}");
+    print(
+      "Build çalışıyor. isLoading: $isLoading, _recipes.length: ${_recipes.length}",
+    );
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -77,8 +85,46 @@ class _RecordedState extends State<Recorded> {
         child: Column(
           children: [
             if (isLoading)
-              Center(
-                child: CircularProgressIndicator(),
+              Center(child: CircularProgressIndicator())
+            else if (isLoggedIn)
+              SizedBox(
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.7, // Yüksekliği ayarla
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        "Kayıtlı tarifleri görmek için giriş yapmanız gerekiyor.",
+                        style: TextStyle(fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.person, color: Colors.white),
+                      label: Text("Giriş yap/Kayıt ol"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                    ],
+                  ),
+                ),
               )
             else if (_recipes.isEmpty)
               Center(
@@ -98,10 +144,11 @@ class _RecordedState extends State<Recorded> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GestureDetector(
                         onTap: () {
-                           Navigator.push(
+                          Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => RecipeScreen(recipe: recipe),
+                              builder:
+                                  (context) => RecipeScreen(recipe: recipe),
                             ),
                           );
                         },
@@ -112,14 +159,15 @@ class _RecordedState extends State<Recorded> {
                               width: 550,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
-                                image: recipe.image != null
-                                    ? DecorationImage(
-                                        image: MemoryImage(
-                                          base64Decode(recipe.image!),
-                                        ),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
+                                image:
+                                    recipe.image != null
+                                        ? DecorationImage(
+                                          image: MemoryImage(
+                                            base64Decode(recipe.image!),
+                                          ),
+                                          fit: BoxFit.cover,
+                                        )
+                                        : null,
                               ),
                             ),
                             Positioned(
@@ -133,9 +181,7 @@ class _RecordedState extends State<Recorded> {
                                 ),
                                 child: Text(
                                   recipe.foodType,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(color: Colors.white),
                                 ),
                               ),
@@ -179,7 +225,8 @@ class _RecordedState extends State<Recorded> {
                       ),
                     );
                   },
-                  itemCount: _recipes.length, // Dinamik olarak listenin boyutunu al
+                  itemCount:
+                      _recipes.length, // Dinamik olarak listenin boyutunu al
                   scrollDirection: Axis.vertical,
                   padding: EdgeInsets.only(bottom: 150, right: 14, left: 14),
                 ),

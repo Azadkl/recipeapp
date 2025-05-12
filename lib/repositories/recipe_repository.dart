@@ -4,9 +4,9 @@ import '../models/recipe_model.dart';
 class RecipeRepository {
   final RecipeRemoteDatasource _remoteDatasource = RecipeRemoteDatasource();
 
-  Future<List<RecipeModel>> getAllRecipes(String authToken) async {
+  Future<List<RecipeModel>> getAllRecipes() async {
     try {
-      return await _remoteDatasource.getAllRecipes(authToken);
+      return await _remoteDatasource.getAllRecipes();
     } catch (e) {
       throw Exception('Failed to get recipes: $e');
     }
