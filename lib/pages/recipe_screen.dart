@@ -49,7 +49,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   Future<void> toggleBookmarkStatus() async {
     final token = await LocalStorageService.getToken();
     if (token == null) {
-       Widgets.showSnackBar(
+      Widgets.showSnackBar(
         context,
         "Hata",
         "Oturum açmanız gerekiyor",
@@ -91,7 +91,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
   Future<void> toggleLikeStatus() async {
     final token = await LocalStorageService.getToken();
     if (token == null) {
-       Widgets.showSnackBar(
+      Widgets.showSnackBar(
         context,
         "Hata",
         "Oturum açmanız gerekiyor",
@@ -115,7 +115,6 @@ class _RecipeScreenState extends State<RecipeScreen> {
       // Backend yanıtına göre durumu güncelle
       setState(() {
         isLiked = response.isLiked;
-        
       });
 
       // Yerel depolamaya güncellenmiş durumu kaydet
@@ -297,20 +296,34 @@ class _RecipeScreenState extends State<RecipeScreen> {
                                 "Nasıl Yapılır ?",
                                 style: AppWidget.semiBoldTextFeildStyle(),
                               ),
-                              for (var items in recipe.instructions)
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.local_fire_department,
-                                      color: Colors.orange,
-                                    ),
+                              // Adımlar numaralı ve satır sonuna gelince alt satıra geçecek şekilde listeleniyor
+                              for (var entry
+                                  in recipe.instructions.asMap().entries)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 2.0,
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.local_fire_department,
+                                        color: Colors.orange,
+                                        size: 20,
+                                      ),
 
-                                    Text(
-                                      items,
-                                      style: AppWidget.LightTextFeildStyle()
-                                          .copyWith(fontSize: 13),
-                                    ),
-                                  ],
+                                      SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          entry.value,
+                                          style: AppWidget.LightTextFeildStyle()
+                                              .copyWith(fontSize: 13),
+                                          softWrap: true,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               Divider(thickness: 1.0),
                               Text(
@@ -405,7 +418,7 @@ class _RecipeScreenState extends State<RecipeScreen> {
                 ),
                 child: Icon(
                   isLiked ? Icons.favorite : Icons.favorite_border,
-                  color: isLiked ? Colors.red : Colors.black,
+                  color: isLiked ? Colors.white : Colors.white,
                 ),
               ),
             ),

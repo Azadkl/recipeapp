@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
+import 'package:image/image.dart' as img;
 import 'package:recipeapp/widget/widget_support.dart';
 
 class FindFood extends StatefulWidget {
@@ -12,14 +15,75 @@ class FindFood extends StatefulWidget {
 }
 
 class _FindFoodState extends State<FindFood> {
-  File? _image;
   final ImagePicker _picker = ImagePicker();
   bool _isAnalyzing = false;
   bool _hasAnalyzed = false;
-  List<String> _detectedIngredients = [];
+  bool _isModelLoaded = false;
+
+  // TensorFlow Lite için değişkenler
+  late Interpreter interpreter;
+  List<String> labels = [];
+
+  // Çoklu fotoğraf ve malzeme desteği için değişkenler
+  List<File> _images = [];
+  Map<File, List<String>> _imageIngredients = {};
+  List<String> _allDetectedIngredients = [];
   List<Recipe> _matchedRecipes = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadModelAndLabels();
+  }
+
+  // TensorFlow Lite modelini ve etiketleri yükle
+  Future<void> _loadModelAndLabels() async {
+    try {
+      interpreter = await Interpreter.fromAsset('assets/model_unquant.tflite');
+
+      // labels.txt'yi oku ve numarasız, baş harfi büyük şekilde al
+      final labelsTxt = await rootBundle.loadString('assets/labels.txt');
+      labels =
+          labelsTxt.split('\n').where((line) => line.trim().isNotEmpty).map((
+            line,
+          ) {
+            // Satırdan numarayı kaldır, sadece isim kısmını al
+            final parts = line.trim().split(' ');
+            if (parts.length > 1) {
+              // Sadece isim kısmı, baş harf büyük
+              final name = parts.sublist(1).join(' ');
+              return name[0].toUpperCase() + name.substring(1);
+            } else {
+              // Sadece isim varsa
+              final name = parts[0];
+              return name[0].toUpperCase() + name.substring(1);
+            }
+          }).toList();
+
+      print("✅ Model yüklendi!");
+      print('Input Tensor: ${interpreter.getInputTensor(0).shape}');
+      print('Input Type: ${interpreter.getInputTensor(0).type}');
+      print('Output Tensor: ${interpreter.getOutputTensor(0).shape}');
+      print('Output Type: ${interpreter.getOutputTensor(0).type}');
+
+      setState(() {
+        _isModelLoaded = true;
+      });
+    } catch (e) {
+      print("❌ Model yüklenirken hata: $e");
+    }
+  }
+
   Future<void> _getImage(ImageSource source) async {
+    if (!_isModelLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Model henüz yüklenmedi, lütfen bekleyin...'),
+        ),
+      );
+      return;
+    }
+
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
@@ -27,17 +91,16 @@ class _FindFoodState extends State<FindFood> {
       );
 
       if (pickedFile != null) {
+        final File imageFile = File(pickedFile.path);
+
         setState(() {
-          _image = File(pickedFile.path);
+          _images.add(imageFile);
           _isAnalyzing = true;
           _hasAnalyzed = false;
-          _detectedIngredients = [];
-          _matchedRecipes = [];
         });
 
-        // Simulate AI processing delay
-        await Future.delayed(const Duration(seconds: 2));
-        _analyzeImage();
+        // Yapay zeka ile malzeme tanıma
+        await _analyzeImageWithTFLite(imageFile);
       }
     } catch (e) {
       ScaffoldMessenger.of(
@@ -46,24 +109,108 @@ class _FindFoodState extends State<FindFood> {
     }
   }
 
-  void _analyzeImage() {
-    // Simulate AI detection of ingredients
-    // In a real app, this would call an AI service API
+  // TensorFlow Lite ile görüntü analizi
+  Future<void> _analyzeImageWithTFLite(File imageFile) async {
+    try {
+      // Resmi oku
+      var bytes = await imageFile.readAsBytes();
+      img.Image? image = img.decodeImage(bytes);
+
+      if (image == null) {
+        throw Exception("Görüntü okunamadı");
+      }
+
+      // Görseli 224x224'e resize et
+      img.Image resizedImage = img.copyResize(image, width: 224, height: 224);
+
+      // Modelin beklediği input formatına çevir (1,224,224,3)
+      List<List<List<List<double>>>> input = List.generate(
+        1,
+        (_) => List.generate(
+          224,
+          (_) => List.generate(224, (_) => List.filled(3, 0.0)),
+        ),
+      );
+
+      for (int y = 0; y < 224; y++) {
+        for (int x = 0; x < 224; x++) {
+          final pixel = resizedImage.getPixel(x, y);
+          final r = pixel.r / 255.0;
+          final g = pixel.g / 255.0;
+          final b = pixel.b / 255.0;
+          input[0][y][x] = [r, g, b];
+        }
+      }
+
+      // Output için boş tensor oluştur
+      var outputShape = interpreter.getOutputTensor(0).shape;
+      var output = List.filled(
+        outputShape[1],
+        0.0,
+      ).reshape([1, outputShape[1]]);
+
+      // Modeli çalıştır
+      interpreter.run(input, output);
+
+      // Sonuçları al
+      var scores = output[0] as List<double>;
+      int maxIndex = scores.indexWhere(
+        (element) => element == scores.reduce((a, b) => a > b ? a : b),
+      );
+
+      // Tahmin edilen malzemeyi kaydet
+      String predictedIngredient = labels[maxIndex];
+
+      setState(() {
+        _isAnalyzing = false;
+        _imageIngredients[imageFile] = [predictedIngredient];
+
+        // Tüm malzemeleri birleştir
+        _updateAllIngredients();
+      });
+
+      // Kullanıcıya bilgi ver (Snackbar kaldırıldı)
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('Tespit edilen malzeme: $predictedIngredient')),
+      // );
+    } catch (e) {
+      setState(() {
+        _isAnalyzing = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Analiz sırasında hata: $e')));
+    }
+  }
+
+  void _updateAllIngredients() {
+    // Tüm resimlerdeki malzemeleri birleştir
+    Set<String> uniqueIngredients = {};
+
+    for (var ingredients in _imageIngredients.values) {
+      uniqueIngredients.addAll(ingredients);
+    }
+
+    _allDetectedIngredients = uniqueIngredients.toList();
+  }
+
+  void _finishAndFindRecipes() {
     setState(() {
-      _isAnalyzing = false;
       _hasAnalyzed = true;
 
-      // Example detected ingredients - in a real app these would come from the AI
-      _detectedIngredients = [
-        'Domates',
-        'Soğan',
-        'Biber',
-        'Sarımsak',
-        'Zeytinyağı',
-      ];
+      // Tüm malzemelere göre tarifleri bul
+      _matchedRecipes = _findMatchingRecipes(_allDetectedIngredients);
+    });
+  }
 
-      // Find matching recipes
-      _matchedRecipes = _findMatchingRecipes(_detectedIngredients);
+  void _resetAndStartOver() {
+    setState(() {
+      _images = [];
+      _imageIngredients = {};
+      _allDetectedIngredients = [];
+      _matchedRecipes = [];
+      _hasAnalyzed = false;
     });
   }
 
@@ -120,8 +267,8 @@ class _FindFoodState extends State<FindFood> {
           return recipe.copyWith(matchScore: matchPercentage.round());
         })
         .where(
-          (recipe) => recipe.matchScore > 40,
-        ) // Only show recipes with at least 40% match
+          (recipe) => recipe.matchScore > 0,
+        ) // Show all recipes with at least 1 matching ingredient
         .toList()
       ..sort((a, b) => b.matchScore.compareTo(a.matchScore));
   }
@@ -143,19 +290,47 @@ class _FindFoodState extends State<FindFood> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Model yükleme durumu
+            // if (!_isModelLoaded)
+            //   Container(
+            //     padding: const EdgeInsets.all(16),
+            //     margin: const EdgeInsets.all(16),
+            //     decoration: BoxDecoration(
+            //       color: Colors.amber.shade100,
+            //       borderRadius: BorderRadius.circular(12),
+            //     ),
+            //     child: Row(
+            //       children: [
+            //         const CircularProgressIndicator(
+            //           valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
+            //         ),
+            //         const SizedBox(width: 16),
+            //         const Expanded(
+            //           child: Text(
+            //             'Yapay zeka modeli yükleniyor, lütfen bekleyin...',
+            //             style: TextStyle(
+            //               fontSize: 14,
+            //               fontWeight: FontWeight.bold,
+            //             ),
+            //           ),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+
             // Top section with instructions
             Container(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
                   const Text(
-                    'Elindeki malzemelerin fotoğrafını çek',
+                    'Her bir malzemenin ayrı fotoğrafını çek',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Yapay zeka malzemelerini tanıyacak ve sana uygun tarifleri gösterecek',
+                    'Yapay zeka her bir malzemeyi tanıyacak ve bitir dediğinde sana uygun tarifleri gösterecek',
                     style: TextStyle(fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
@@ -164,7 +339,10 @@ class _FindFoodState extends State<FindFood> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: () => _getImage(ImageSource.camera),
+                        onPressed:
+                            _isModelLoaded
+                                ? () => _getImage(ImageSource.camera)
+                                : null,
                         icon: const Icon(Icons.camera_alt, color: Colors.white),
                         label: const Text('Fotoğraf Çek'),
                         style: ElevatedButton.styleFrom(
@@ -177,7 +355,10 @@ class _FindFoodState extends State<FindFood> {
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () => _getImage(ImageSource.gallery),
+                        onPressed:
+                            _isModelLoaded
+                                ? () => _getImage(ImageSource.gallery)
+                                : null,
                         icon: const Icon(
                           Icons.photo_library,
                           color: Colors.white,
@@ -198,28 +379,100 @@ class _FindFoodState extends State<FindFood> {
               ),
             ),
 
-            // Image preview
-            if (_image != null)
+            // Bitir butonu - en az bir resim varsa göster
+            if (_images.isNotEmpty && !_hasAnalyzed)
               Container(
-                height: 200,
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    _image!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _finishAndFindRecipes,
+                  icon: const Icon(Icons.check_circle, color: Colors.white),
+                  label: const Text('Malzeme Eklemeyi Bitir ve Tarifleri Bul'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                   ),
+                ),
+              ),
+
+            // Yeniden başlat butonu - analiz tamamlandıysa göster
+            if (_hasAnalyzed)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                child: ElevatedButton.icon(
+                  onPressed: _resetAndStartOver,
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  label: const Text('Yeniden Başla'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ),
+
+            // Image previews - horizontal scrollable list
+            if (_images.isNotEmpty)
+              Container(
+                height: 120,
+                margin: const EdgeInsets.all(16),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _images.length,
+                  itemBuilder: (context, index) {
+                    final image = _images[index];
+                    final ingredients = _imageIngredients[image] ?? [];
+
+                    return Container(
+                      width: 100,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                image,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              ),
+                            ),
+                          ),
+                          if (ingredients.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              width: double.infinity,
+                              color: Colors.black,
+                              child: Text(
+                                ingredients.join(', '),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                ),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -234,7 +487,7 @@ class _FindFoodState extends State<FindFood> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Yapay zeka malzemeleri analiz ediyor...',
+                      'Yapay zeka malzemeyi analiz ediyor...',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -253,7 +506,7 @@ class _FindFoodState extends State<FindFood> {
               ),
 
             // Detected ingredients
-            if (_hasAnalyzed && _detectedIngredients.isNotEmpty)
+            if (_allDetectedIngredients.isNotEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -289,11 +542,11 @@ class _FindFoodState extends State<FindFood> {
                       spacing: 8,
                       runSpacing: 8,
                       children:
-                          _detectedIngredients.map((ingredient) {
+                          _allDetectedIngredients.map((ingredient) {
                             return Chip(
                               label: Text(
                                 ingredient,
-                                style: TextStyle(color: Colors.white),
+                                style: const TextStyle(color: Colors.white),
                               ),
                               backgroundColor: Colors.black,
                               side: BorderSide.none,
@@ -330,7 +583,10 @@ class _FindFoodState extends State<FindFood> {
                       itemCount: _matchedRecipes.length,
                       itemBuilder: (context, index) {
                         final recipe = _matchedRecipes[index];
-                        return RecipeCard(recipe: recipe);
+                        return RecipeCard(
+                          recipe: recipe,
+                          detectedIngredients: _allDetectedIngredients,
+                        );
                       },
                     ),
                   ],
@@ -410,8 +666,13 @@ class Recipe {
 
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
+  final List<String> detectedIngredients;
 
-  const RecipeCard({super.key, required this.recipe});
+  const RecipeCard({
+    super.key,
+    required this.recipe,
+    required this.detectedIngredients,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +720,7 @@ class RecipeCard extends StatelessWidget {
                       const Icon(Icons.thumb_up, color: Colors.white, size: 16),
                       const SizedBox(width: 4),
                       Text(
-                        '${recipe.matchScore}',
+                        '${recipe.matchScore}%',
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -500,8 +761,9 @@ class RecipeCard extends StatelessWidget {
                   runSpacing: 6,
                   children:
                       recipe.ingredients.map((ingredient) {
-                        final isDetected = _FindFoodState()._detectedIngredients
-                            .contains(ingredient);
+                        final isDetected = detectedIngredients.contains(
+                          ingredient,
+                        );
                         return Chip(
                           label: Text(
                             ingredient,

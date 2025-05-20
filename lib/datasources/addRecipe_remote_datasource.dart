@@ -19,7 +19,7 @@ class AddrecipeRemoteDatasource {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://192.168.13.74:8000/users/recipes/'),
+        Uri.parse('http://10.40.127.2:8000/users/recipes/'),
       );
 
       request.headers.addAll({

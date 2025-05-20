@@ -42,6 +42,8 @@ dependencies:
   chewie: ^1.10.0
   http: ^1.3.0
   shared_preferences: ^2.5.3
+  tflite_flutter: ^0.10.3
+  image: ^4.0.17
 
 dev_dependencies:
   flutter_test:
@@ -61,7 +63,8 @@ dev_dependencies:
 flutter:
   assets:
     - assets/images/
-
+    - assets/model_unquant.tflite
+    - assets/labels.txt
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

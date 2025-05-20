@@ -4,7 +4,7 @@ import 'package:recipeapp/models/bookmark_toggle_model.dart';
 import '../models/bookmark_model.dart';
 
 class BookmarkRemoteDataSource {
-  final String baseUrl = "http://192.168.13.74:8000"; // senin IP adresin
+  final String baseUrl = "http://10.40.127.2:8000"; // senin IP adresin
 
   // Yer işaretlerini getirme
   Future<List<BookmarkModel>> getBookmarks(String userId, String token) async {
@@ -15,8 +15,8 @@ class BookmarkRemoteDataSource {
         'Content-Type': 'application/json',
       },
     );
- print("API Yanıtı: ${response.body}"); 
-  print("API Yanıtı: ${response.statusCode}");  // API yanıtını yazdırıyoruz
+    print("API Yanıtı: ${response.body}");
+    print("API Yanıtı: ${response.statusCode}"); // API yanıtını yazdırıyoruz
     if (response.statusCode == 200) {
       final dynamic data = json.decode(response.body);
       if (data is List) {

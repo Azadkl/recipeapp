@@ -15,4 +15,8 @@ class RecipeRepository {
   Future<RecipeModel> getRecipesById(String id, String token) async {
     return await _remoteDatasource.getRecipesById(id, token);
   }
+Future<void> deleteRecipeById(String id, String token) async {
+  await _remoteDatasource.deleteRecipeById(id, token);
+}
+
 }

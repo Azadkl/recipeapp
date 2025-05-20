@@ -47,6 +47,9 @@ class _RecordedState extends State<Recorded> {
       print("Yer işaretleri yükleniyor...");
       final recipes = await _bookmarkRepository.getBookmarks(userId, token);
 
+      // Beğeni sayısına göre azalan sırala
+      recipes.sort((a, b) => b.likesCount.compareTo(a.likesCount));
+
       print("Alınan tarif sayısı: ${recipes.length}");
       print(
         "İlk tarif (varsa): ${recipes.isNotEmpty ? recipes.first.title : 'N/A'}",
@@ -121,8 +124,7 @@ class _RecordedState extends State<Recorded> {
                           vertical: 12,
                         ),
                       ),
-                    ),
-                    ],
+                  )],
                   ),
                 ),
               )
@@ -159,31 +161,54 @@ class _RecordedState extends State<Recorded> {
                               width: 550,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(16),
-                                image:
-                                    recipe.image != null
-                                        ? DecorationImage(
-                                          image: MemoryImage(
-                                            base64Decode(recipe.image!),
-                                          ),
-                                          fit: BoxFit.cover,
-                                        )
-                                        : null,
+                                image: recipe.image != null
+                                    ? DecorationImage(
+                                        image: MemoryImage(
+                                          base64Decode(recipe.image!),
+                                        ),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
                               ),
                             ),
                             Positioned(
                               top: 8,
                               left: 8,
-                              child: Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.6),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  recipe.foodType,
-                                  style: Theme.of(context).textTheme.bodyMedium
-                                      ?.copyWith(color: Colors.white),
-                                ),
+                              right: 8,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      recipe.foodType,
+                                      style: Theme.of(context).textTheme.bodyMedium
+                                          ?.copyWith(color: Colors.white),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.favorite, color: Colors.white, size: 20),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          recipe.likesCount.toString(),
+                                          style: Theme.of(context).textTheme.bodyMedium
+                                              ?.copyWith(color: Colors.white),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                             Positioned(
@@ -225,8 +250,7 @@ class _RecordedState extends State<Recorded> {
                       ),
                     );
                   },
-                  itemCount:
-                      _recipes.length, // Dinamik olarak listenin boyutunu al
+                  itemCount: _recipes.length,
                   scrollDirection: Axis.vertical,
                   padding: EdgeInsets.only(bottom: 150, right: 14, left: 14),
                 ),

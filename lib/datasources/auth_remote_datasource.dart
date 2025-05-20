@@ -7,7 +7,7 @@ class AuthRemoteDataSource {
   Future<UserModel> login(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.13.74:8000/users/login/"),
+        Uri.parse("http://10.40.127.2:8000/users/login/"),
         body: json.encode({'username': username, 'password': password}),
         headers: {
           'Content-Type': 'application/json', // JSON formatı kullanıyoruz
@@ -34,7 +34,7 @@ class AuthRemoteDataSource {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse("http://192.168.13.74:8000/users/register/"),
+        Uri.parse("http://10.40.127.2:8000/users/register/"),
         body: json.encode({
           'username': username,
           'email': email,
@@ -57,7 +57,7 @@ class AuthRemoteDataSource {
 
   Future<UserModel> getUserDetail(String token) async {
     final response = await http.get(
-      Uri.parse("http://192.168.13.74:8000/users/me/"),
+      Uri.parse("http://10.40.127.2:8000/users/me/"),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

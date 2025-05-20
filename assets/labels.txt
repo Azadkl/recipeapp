@@ -1,0 +1,11 @@
+0 domates
+1 biber
+2 soğan
+3 salça
+4 et
+5 tavuk
+6 mantar
+7 sarımsak
+8 pirinç
+9 patates
+10 yumurta
