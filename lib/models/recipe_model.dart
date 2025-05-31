@@ -10,8 +10,11 @@ class RecipeModel {
   final String foodType;
   final int servings;
   final bool? isBookmarked; // Yeni alan
-  final bool? isLiked;      // Yeni alan
- final int likesCount; 
+  final bool? isLiked; // Yeni alan
+  final int likesCount;
+  final int? ingredientMatchPercentage; // Yeni alan
+  final String? createdAt; // <-- yeni alan
+
   RecipeModel({
     required this.id,
     required this.title,
@@ -25,7 +28,9 @@ class RecipeModel {
     required this.servings,
     this.isBookmarked,
     this.isLiked,
-    required this.likesCount, 
+    required this.likesCount,
+    this.ingredientMatchPercentage, // Yeni alan
+    this.createdAt, // <-- yeni alan
   });
 
   factory RecipeModel.fromJson(Map<String, dynamic> json) {
@@ -37,18 +42,29 @@ class RecipeModel {
       instructions: List<String>.from(json['instructions'] ?? []),
       image: json['image'] as String?,
       username: _extractUsername(json['user']),
-      prepTime: json['prep_time'] is int
-          ? json['prep_time']
-          : int.tryParse(json['prep_time']?.toString() ?? '0') ?? 0,
+      prepTime:
+          json['prep_time'] is int
+              ? json['prep_time']
+              : int.tryParse(json['prep_time']?.toString() ?? '0') ?? 0,
       foodType: json['food_type']?.toString() ?? '',
-      servings: json['servings'] is int
-          ? json['servings']
-          : int.tryParse(json['servings']?.toString() ?? '1') ?? 1,
+      servings:
+          json['servings'] is int
+              ? json['servings']
+              : int.tryParse(json['servings']?.toString() ?? '1') ?? 1,
       isBookmarked: json['isBookmarked'] as bool?, // Yeni alan
-      isLiked: json['isLiked'] as bool?,           // Yeni alan
-      likesCount: json['likes_count'] is int
-          ? json['likes_count']
-          : int.tryParse(json['likes_count']?.toString() ?? '0') ?? 0,  // Yeni alan
+      isLiked: json['isLiked'] as bool?, // Yeni alan
+      likesCount:
+          json['likes_count'] is int
+              ? json['likes_count']
+              : int.tryParse(json['likes_count']?.toString() ?? '0') ??
+                  0, // Yeni alan
+      ingredientMatchPercentage:
+          json['ingredient_match_percentage'] is int
+              ? json['ingredient_match_percentage']
+              : int.tryParse(
+                json['ingredient_match_percentage']?.toString() ?? '',
+              ),
+      createdAt: json['created_at'] as String?, // <-- yeni alan
     );
   }
 
@@ -58,5 +74,4 @@ class RecipeModel {
     }
     return 'Anonim';
   }
-  
 }

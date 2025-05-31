@@ -18,6 +18,7 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   List<RecipeModel> recipes = [];
   List<RecipeModel> displayedRecipes = [];
+  List<RecipeModel> _recentRecipes = [];
   UserModel? user;
   bool isLoading = true;
   final RecipeRepository _recipeRepository = RecipeRepository();
@@ -30,6 +31,7 @@ class _HomeState extends State<Home> {
     _loadUserAndRecipes().then((value) {
       setState(() {});
     });
+    _loadRecentRecipes(); // recent backend çağrısı
   }
 
   Future<void> _loadUserAndRecipes() async {
@@ -54,6 +56,18 @@ class _HomeState extends State<Home> {
       setState(() => isLoading = false);
     }
     print("📦 Toplam tarif yüklendi: ${recipes.length}");
+  }
+
+  Future<void> _loadRecentRecipes() async {
+    try {
+      // Backend'den son yüklenen tarifleri çekiyoruz
+      final recent = await _recipeRepository.getRecentRecipes(limit: 10);
+      setState(() {
+        _recentRecipes = recent;
+      });
+    } catch (e) {
+      print("Recent recipes error: $e");
+    }
   }
 
   Future<void> _searchRecipes(String query) async {
@@ -223,8 +237,20 @@ class _HomeState extends State<Home> {
                 },
               ),
             ),
-            _buildRecipeSection("Popüler Tarifler", displayedRecipes),
-            _buildRecipeSection("Son Yüklenen Tarifler", displayedRecipes),
+            // Popüler Tarifler
+            isLoading
+                ? SizedBox(
+                  height: 280,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+                : _buildRecipeSection("Popüler Tarifler", displayedRecipes),
+            // Son Yüklenen Tarifler
+            _recentRecipes.isEmpty && isLoading
+                ? SizedBox(
+                  height: 280,
+                  child: Center(child: CircularProgressIndicator()),
+                )
+                : _buildRecipeSection("Son Yüklenen Tarifler", _recentRecipes),
           ],
         ),
       ),
@@ -320,6 +346,7 @@ class _HomeState extends State<Home> {
                                     color: Colors.white,
                                     size: 20,
                                   ),
+
                                   const SizedBox(width: 4),
                                   Text(
                                     recipe.likesCount.toString(),

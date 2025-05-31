@@ -40,7 +40,7 @@ class _SignupState extends State<Signup> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [ Color.fromARGB(255, 255, 0, 0),Colors.black],
+                    colors: [Color.fromARGB(255, 255, 0, 0), Colors.black],
                   ),
                 ),
               ),
@@ -181,13 +181,11 @@ class _SignupState extends State<Signup> {
                       ),
                     ),
                     SizedBox(height: 20.0),
-                       GestureDetector(
+                    GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => Bottomnav(),
-                          ),
+                          MaterialPageRoute(builder: (context) => Bottomnav()),
                         );
                       },
                       child: Text(
@@ -253,12 +251,25 @@ class _SignupState extends State<Signup> {
           MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       } catch (e) {
-        Widgets.showSnackBar(
-          context,
-          "Hata!",
-          e.toString(),
-          ContentType.failure,
-        );
+        // NotUniqueError kontrolü
+        final errStr = e.toString();
+        if (errStr.contains("NotUniqueError") ||
+            errStr.contains("already exists") ||
+            errStr.contains("unique")) {
+          Widgets.showSnackBar(
+            context,
+            "Kayıt Hatası",
+            "Bu kullanıcı adı veya e-posta zaten kayıtlı. Lütfen farklı bir kullanıcı adı veya e-posta deneyin.",
+            ContentType.failure,
+          );
+        } else {
+          Widgets.showSnackBar(
+            context,
+            "Hata!",
+            e.toString(),
+            ContentType.failure,
+          );
+        }
       } finally {
         setState(() {
           isLoading = false;

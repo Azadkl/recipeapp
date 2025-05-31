@@ -4,7 +4,8 @@ import 'package:recipeapp/models/bookmark_toggle_model.dart';
 import '../models/bookmark_model.dart';
 
 class BookmarkRemoteDataSource {
-  final String baseUrl = "http://10.40.127.2:8000"; // senin IP adresin
+  final String baseUrl =
+      "https://booknest-7-an7g.onrender.com"; // senin IP adresin
 
   // Yer işaretlerini getirme
   Future<List<BookmarkModel>> getBookmarks(String userId, String token) async {

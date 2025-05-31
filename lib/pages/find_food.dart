@@ -1,11 +1,15 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:recipeapp/models/recipe_model.dart';
+import 'package:recipeapp/pages/recipe_screen.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
 import 'package:image/image.dart' as img;
 import 'package:recipeapp/widget/widget_support.dart';
+import 'package:recipeapp/datasources/recipe_remote_datasource.dart';
 
 class FindFood extends StatefulWidget {
   const FindFood({super.key});
@@ -29,6 +33,7 @@ class _FindFoodState extends State<FindFood> {
   Map<File, List<String>> _imageIngredients = {};
   List<String> _allDetectedIngredients = [];
   List<Recipe> _matchedRecipes = [];
+  final RecipeRemoteDatasource _remoteDatasource = RecipeRemoteDatasource();
 
   @override
   void initState() {
@@ -195,13 +200,78 @@ class _FindFoodState extends State<FindFood> {
     _allDetectedIngredients = uniqueIngredients.toList();
   }
 
-  void _finishAndFindRecipes() {
+  void _finishAndFindRecipes() async {
     setState(() {
       _hasAnalyzed = true;
-
-      // Tüm malzemelere göre tarifleri bul
-      _matchedRecipes = _findMatchingRecipes(_allDetectedIngredients);
+      _isAnalyzing = true;
+      _matchedRecipes = [];
     });
+
+    try {
+      // Tüm tarifleri çek
+      final allRecipes = await _remoteDatasource.getAllRecipes();
+
+      // Kullanıcının tespit edilen malzemelerini normalize et (küçük harf, trim)
+      final detected =
+          _allDetectedIngredients.map((e) => e.toLowerCase().trim()).toList();
+
+      // Eşleşen tarifleri bul ve yüzde hesabı yap
+      final matched =
+          allRecipes
+              .map((model) {
+                // Tarifin malzemelerini normalize et
+                final recipeIngredients =
+                    model.ingredients
+                        .map((e) => e.toLowerCase().trim())
+                        .toList();
+
+                // Kaç malzeme eşleşiyor?
+                final matchedCount =
+                    recipeIngredients
+                        .where((ingredient) => detected.contains(ingredient))
+                        .length;
+
+                // Yüzde hesabı
+                final percent =
+                    recipeIngredients.isNotEmpty
+                        ? ((matchedCount / recipeIngredients.length) * 100)
+                            .round()
+                        : 0;
+
+                return Recipe(
+                  name: model.title,
+                  imageUrl: model.image ?? "",
+                  ingredients: model.ingredients,
+                  ingredientMatchPercentage: percent,
+                  model: model, // <-- burada ekle
+                );
+              })
+              // Sadece en az bir malzemesi eşleşenleri al, yüzdeye göre sırala
+              .where(
+                (r) =>
+                    r.ingredientMatchPercentage != null &&
+                    r.ingredientMatchPercentage! > 0,
+              )
+              .toList()
+            ..sort(
+              (a, b) => (b.ingredientMatchPercentage ?? 0).compareTo(
+                a.ingredientMatchPercentage ?? 0,
+              ),
+            );
+
+      setState(() {
+        _matchedRecipes = matched;
+        _isAnalyzing = false;
+      });
+    } catch (e) {
+      setState(() {
+        _matchedRecipes = [];
+        _isAnalyzing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Tarifler alınırken hata oluştu: $e')),
+      );
+    }
   }
 
   void _resetAndStartOver() {
@@ -212,65 +282,6 @@ class _FindFoodState extends State<FindFood> {
       _matchedRecipes = [];
       _hasAnalyzed = false;
     });
-  }
-
-  List<Recipe> _findMatchingRecipes(List<String> ingredients) {
-    // This would normally query a database or API
-    // For demo purposes, we'll use a hardcoded list
-    final allRecipes = [
-      Recipe(
-        name: 'Menemen',
-        imageUrl:
-            'https://cdn.yemek.com/mncrop/940/625/uploads/2014/06/menemen-tarifi-yeni.jpg',
-        ingredients: ['Domates', 'Soğan', 'Biber', 'Yumurta', 'Zeytinyağı'],
-        matchScore: 80,
-      ),
-      Recipe(
-        name: 'Domates Çorbası',
-        imageUrl:
-            'https://cdn.yemek.com/mncrop/940/625/uploads/2015/09/domates-corbasi-yemekcom.jpg',
-        ingredients: ['Domates', 'Soğan', 'Un', 'Tereyağı', 'Tuz'],
-        matchScore: 60,
-      ),
-      Recipe(
-        name: 'Kızartma',
-        imageUrl:
-            'https://cdn.yemek.com/mncrop/940/625/uploads/2020/08/patlican-kizartmasi-yemekcom.jpg',
-        ingredients: ['Patlıcan', 'Domates', 'Biber', 'Sarımsak', 'Zeytinyağı'],
-        matchScore: 70,
-      ),
-      Recipe(
-        name: 'Shakshuka',
-        imageUrl:
-            'https://cdn.yemek.com/mncrop/940/625/uploads/2018/05/szakszuka-tarifi.jpg',
-        ingredients: [
-          'Domates',
-          'Soğan',
-          'Biber',
-          'Yumurta',
-          'Sarımsak',
-          'Zeytinyağı',
-        ],
-        matchScore: 90,
-      ),
-    ];
-
-    // Filter and sort recipes based on matching ingredients
-    return allRecipes
-        .map((recipe) {
-          final matchCount =
-              recipe.ingredients
-                  .where((ingredient) => ingredients.contains(ingredient))
-                  .length;
-          final matchPercentage =
-              (matchCount / recipe.ingredients.length) * 100;
-          return recipe.copyWith(matchScore: matchPercentage.round());
-        })
-        .where(
-          (recipe) => recipe.matchScore > 0,
-        ) // Show all recipes with at least 1 matching ingredient
-        .toList()
-      ..sort((a, b) => b.matchScore.compareTo(a.matchScore));
   }
 
   @override
@@ -290,35 +301,6 @@ class _FindFoodState extends State<FindFood> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Model yükleme durumu
-            // if (!_isModelLoaded)
-            //   Container(
-            //     padding: const EdgeInsets.all(16),
-            //     margin: const EdgeInsets.all(16),
-            //     decoration: BoxDecoration(
-            //       color: Colors.amber.shade100,
-            //       borderRadius: BorderRadius.circular(12),
-            //     ),
-            //     child: Row(
-            //       children: [
-            //         const CircularProgressIndicator(
-            //           valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
-            //         ),
-            //         const SizedBox(width: 16),
-            //         const Expanded(
-            //           child: Text(
-            //             'Yapay zeka modeli yükleniyor, lütfen bekleyin...',
-            //             style: TextStyle(
-            //               fontSize: 14,
-            //               fontWeight: FontWeight.bold,
-            //             ),
-            //           ),
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-
-            // Top section with instructions
             Container(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -640,26 +622,29 @@ class Recipe {
   final String name;
   final String imageUrl;
   final List<String> ingredients;
-  final int matchScore;
+  final int? ingredientMatchPercentage;
+  final RecipeModel? model; // <-- RecipeModel referansı
 
   const Recipe({
     required this.name,
     required this.imageUrl,
     required this.ingredients,
-    required this.matchScore,
+    this.ingredientMatchPercentage,
+    this.model, // <-- ekle
   });
 
   Recipe copyWith({
     String? name,
     String? imageUrl,
     List<String>? ingredients,
-    int? matchScore,
+    int? ingredientMatchPercentage,
   }) {
     return Recipe(
       name: name ?? this.name,
       imageUrl: imageUrl ?? this.imageUrl,
       ingredients: ingredients ?? this.ingredients,
-      matchScore: matchScore ?? this.matchScore,
+      ingredientMatchPercentage:
+          ingredientMatchPercentage ?? this.ingredientMatchPercentage,
     );
   }
 }
@@ -687,20 +672,37 @@ class RecipeCard extends StatelessWidget {
           // Recipe image with match score overlay
           Stack(
             children: [
-              Image.network(
-                recipe.imageUrl,
+              Container(
                 height: 180,
                 width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 180,
-                    color: Colors.grey.shade300,
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 50),
-                    ),
-                  );
-                },
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12),
+                  ),
+                  image:
+                      recipe.imageUrl.isNotEmpty && _isBase64(recipe.imageUrl)
+                          ? DecorationImage(
+                            image: MemoryImage(base64Decode(recipe.imageUrl)),
+                            fit: BoxFit.cover,
+                          )
+                          : (recipe.imageUrl.isNotEmpty
+                              ? DecorationImage(
+                                image: NetworkImage(recipe.imageUrl),
+                                fit: BoxFit.cover,
+                              )
+                              : null),
+                ),
+                child:
+                    recipe.imageUrl.isEmpty
+                        ? Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 50,
+                            color: Colors.grey.shade700,
+                          ),
+                        )
+                        : null,
               ),
               Positioned(
                 top: 12,
@@ -720,7 +722,7 @@ class RecipeCard extends StatelessWidget {
                       const Icon(Icons.thumb_up, color: Colors.white, size: 16),
                       const SizedBox(width: 4),
                       Text(
-                        '${recipe.matchScore}%',
+                        '${recipe.ingredientMatchPercentage ?? 0}%', // Değişiklik burada
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -786,12 +788,23 @@ class RecipeCard extends StatelessWidget {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Navigate to recipe detail page
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('${recipe.name} tarifine gidiliyor'),
-                        ),
-                      );
+                      if (recipe.model != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) =>
+                                    RecipeScreen(recipe: recipe.model!),
+                          ),
+                        );
+                      } else {
+                        // Fallback: eski yöntem
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tarif detayları bulunamadı'),
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
@@ -808,4 +821,10 @@ class RecipeCard extends StatelessWidget {
       ),
     );
   }
+}
+
+// Yardımcı fonksiyon: base64 olup olmadığını kontrol et
+bool _isBase64(String str) {
+  // Basit kontrol: genellikle base64 stringler uzun ve '/' veya '+' içerir
+  return str.length > 100 && (str.contains('/') || str.contains('+'));
 }

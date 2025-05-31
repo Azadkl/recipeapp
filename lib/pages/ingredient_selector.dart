@@ -30,7 +30,7 @@ class _IngredientSelectorState extends State<IngredientSelector> {
     'lt',
     'adet',
     'yemek kaşığı',
-    'tatlı kaşığı'
+    'tatlı kaşığı',
     'çay kaşığı',
     'su bardağı',
     'fincan',
@@ -337,7 +337,7 @@ class _IngredientSelectorState extends State<IngredientSelector> {
         const SizedBox(height: 16),
 
         // Miktar ve birim seçimi
-        Row(
+       /* Row(
           children: [
             // Miktar girişi
             Expanded(
@@ -401,7 +401,7 @@ class _IngredientSelectorState extends State<IngredientSelector> {
               ),
             ),
           ],
-        ),
+        ),*/
 
         const SizedBox(height: 16),
 

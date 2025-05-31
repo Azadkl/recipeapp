@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:recipeapp/models/islike_toggle_model.dart';
 
 class LikeRemoteDataSource {
-  final String baseUrl = "http://10.40.127.2:8000"; // Senin IP adresin
+  final String baseUrl =
+      "https://booknest-7-an7g.onrender.com"; // Senin IP adresin
 
   // Beğenme işlemini yapma (toggle like)
   Future<IsLikeResponse> toggleLike(String recipeId, String token) async {

@@ -19,7 +19,7 @@ class AddrecipeRemoteDatasource {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://10.40.127.2:8000/users/recipes/'),
+        Uri.parse('https://booknest-7-an7g.onrender.com/users/recipes/'),
       );
 
       request.headers.addAll({

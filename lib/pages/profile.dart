@@ -6,6 +6,7 @@ import 'package:recipeapp/datasources/auth_remote_datasource.dart';
 import 'package:recipeapp/datasources/recipe_remote_datasource.dart';
 import 'package:recipeapp/models/recipe_model.dart';
 import 'package:recipeapp/models/user_model.dart';
+import 'package:recipeapp/repositories/recipe_repository.dart';
 import 'package:recipeapp/pages/login.dart';
 import 'package:recipeapp/services/local_storage_service.dart';
 import 'package:recipeapp/widget/widget_support.dart';
@@ -19,8 +20,9 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  UserModel? user;
   List<RecipeModel> userRecipes = []; // Kullanıcının tarifleri için liste
+  UserModel? user;
+  final RecipeRepository _recipeRepository = RecipeRepository();
   bool isLoading = true; // Yükleme durumu için flag
 
   @override
@@ -108,16 +110,15 @@ class _ProfileState extends State<Profile> {
         final fetchedUser = await userRemoteDataSource.getUserDetail(token);
 
         // Kullanıcının tariflerini yükle
-        final recipeRemoteDataSource = RecipeRemoteDatasource();
-        final recipes = await recipeRemoteDataSource.getAllRecipes();
+        final allRecipes = await _recipeRepository.getAllRecipes();
 
-        // Sadece kullanıcıya ait tarifleri filtrele (API'niz bunu destekliyorsa)
-        // Eğer API'niz kullanıcıya özel tarif filtreleme desteği sunmuyorsa,
-        // bu kısmı uygun şekilde düzenlemeniz gerekebilir
-
+        // Sadece kullanıcıya ait tarifleri filtrele
         setState(() {
+          userRecipes =
+              allRecipes
+                  .where((recipe) => recipe.username == fetchedUser.username)
+                  .toList();
           user = fetchedUser;
-          userRecipes = recipes;
           isLoading = false;
         });
       } else {
@@ -260,7 +261,8 @@ class _ProfileState extends State<Profile> {
                             ),
                           ),
                           TextButton(
-                            onPressed: _showAllRecipes, // Tümünü Gör butonuna tıklandığında bottom sheet'i aç
+                            onPressed:
+                                _showAllRecipes, // Tümünü Gör butonuna tıklandığında bottom sheet'i aç
                             child: const Text("Tümünü Gör"),
                           ),
                         ],
@@ -291,7 +293,11 @@ class _ProfileState extends State<Profile> {
                                 crossAxisSpacing: 16,
                                 mainAxisSpacing: 16,
                               ),
-                          itemCount: userRecipes.length > 4 ? 4 : userRecipes.length, // Sadece ilk 4 tarifi göster
+                          itemCount:
+                              userRecipes.length > 4
+                                  ? 4
+                                  : userRecipes
+                                      .length, // Sadece ilk 4 tarifi göster
                           itemBuilder: (context, index) {
                             final recipe = userRecipes[index];
                             return RecipeCard(
@@ -361,10 +367,7 @@ class AllRecipesBottomSheet extends StatelessWidget {
               children: [
                 const Text(
                   "Tüm Tariflerim",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
@@ -373,7 +376,7 @@ class AllRecipesBottomSheet extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Çekme çubuğu (Drag handle)
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
@@ -384,35 +387,34 @@ class AllRecipesBottomSheet extends StatelessWidget {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           // Tarifler listesi
           Expanded(
-            child: recipes.isEmpty
-                ? const Center(
-                    child: Text(
-                      "Henüz tarif eklenmemiş.",
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
+            child:
+                recipes.isEmpty
+                    ? const Center(
+                      child: Text(
+                        "Henüz tarif eklenmemiş.",
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
+                    )
+                    : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: recipes.length,
+                      itemBuilder: (context, index) {
+                        final recipe = recipes[index];
+                        return RecipeListItem(
+                          recipe: Recipe(
+                            id: recipe.id ?? "0",
+                            title: recipe.title ?? "İsimsiz Tarif",
+                            imageUrl:
+                                recipe.image ?? "https://placeholder.com/food",
+                            duration: "${recipe.prepTime ?? '?'} dakika",
+                          ),
+                          onDelete: () => onDelete(recipe),
+                        );
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: recipes.length,
-                    itemBuilder: (context, index) {
-                      final recipe = recipes[index];
-                      return RecipeListItem(
-                        recipe: Recipe(
-                          id: recipe.id ?? "0",
-                          title: recipe.title ?? "İsimsiz Tarif",
-                          imageUrl: recipe.image ?? "https://placeholder.com/food",
-                          duration: "${recipe.prepTime ?? '?'} dakika",
-                        ),
-                        onDelete: () => onDelete(recipe),
-                      );
-                    },
-                  ),
           ),
         ],
       ),
@@ -425,19 +427,14 @@ class RecipeListItem extends StatelessWidget {
   final Recipe recipe;
   final VoidCallback onDelete;
 
-  const RecipeListItem({
-    Key? key,
-    required this.recipe,
-    required this.onDelete,
-  }) : super(key: key);
+  const RecipeListItem({Key? key, required this.recipe, required this.onDelete})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -460,7 +457,7 @@ class RecipeListItem extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Tarif bilgileri
             Expanded(
               child: Padding(
@@ -499,13 +496,10 @@ class RecipeListItem extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Silme butonu
             IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                color: Colors.red,
-              ),
+              icon: const Icon(Icons.delete_outline, color: Colors.red),
               onPressed: onDelete,
               tooltip: "Tarifi Sil",
             ),
