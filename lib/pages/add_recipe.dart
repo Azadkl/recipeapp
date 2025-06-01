@@ -119,27 +119,55 @@ class _AddRecipeState extends State<AddRecipe> {
         children: [
           SizedBox(height: MediaQuery.of(context).size.height * 0.04),
           _image != null
-              ? Container(
-                height: 200,
-                margin: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+              ? Stack(
+                children: [
+                  Container(
+                    height: 200,
+                    margin: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    _image!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        _image!,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                      ),
+                    ),
                   ),
-                ),
+                  // Sağ üstte X ikonu ile resmi kaldır
+                  Positioned(
+                    top: 28,
+                    right: 28,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _image = null;
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.7),
+                          shape: BoxShape.circle,
+                        ),
+                        padding: const EdgeInsets.all(6),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               )
               : Stack(
                 alignment: Alignment.center,
@@ -167,7 +195,7 @@ class _AddRecipeState extends State<AddRecipe> {
                           height: MediaQuery.of(context).size.height * 0.06,
                         ),
                         Text(
-                          "Resim Ekle",
+                          "Galeriden Resim Ekle",
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         SizedBox(
@@ -182,7 +210,29 @@ class _AddRecipeState extends State<AddRecipe> {
                   ),
                 ],
               ),
-
+          SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+          GestureDetector(
+            onTap: () => _getImage(ImageSource.camera),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.grey,
+              ),
+              width: MediaQuery.of(context).size.width,
+              height: MediaQuery.of(context).size.height * 0.06,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text("Resim Çek", style: AppWidget.semiBoldTextFeildStyle()),
+                  SizedBox(width: MediaQuery.of(context).size.width * 0.04),
+                  const Icon(
+                    CupertinoIcons.photo_camera_solid,
+                    color: Colors.black,
+                  ),
+                ],
+              ),
+            ),
+          ),
           SizedBox(height: MediaQuery.of(context).size.height * 0.04),
           Row(
             children: [
@@ -425,22 +475,7 @@ class _AddRecipeState extends State<AddRecipe> {
               );
             },
           ),
-          SizedBox(height: MediaQuery.of(context).size.height * 0.04),
-          GestureDetector(
-            onTap: () => _getImage(ImageSource.camera),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: Colors.grey,
-              ),
-              width: MediaQuery.of(context).size.width,
-              height: MediaQuery.of(context).size.height * 0.06,
-              child: const Icon(
-                CupertinoIcons.photo_camera_solid,
-                color: Colors.black,
-              ),
-            ),
-          ),
+
           SizedBox(height: MediaQuery.of(context).size.height * 0.04),
           GestureDetector(
             onTap: isLoading ? null : _saveRecipe,
@@ -584,12 +619,12 @@ class _AddRecipeState extends State<AddRecipe> {
     }
 
     try {
-       print("Tarif adı: ${_detailController.text}");
-    print("Süre: ${_durationController.text}");
-    print("Porsiyon: ${_portionController.text}");
-    print("Adımlar: $steps");
-    print("Seçilen malzemeler: $ingredients");
-    print("Resim yolu: ${_image?.path}");
+      print("Tarif adı: ${_detailController.text}");
+      print("Süre: ${_durationController.text}");
+      print("Porsiyon: ${_portionController.text}");
+      print("Adımlar: $steps");
+      print("Seçilen malzemeler: $ingredients");
+      print("Resim yolu: ${_image?.path}");
       final repository = AddrecipeRepository();
 
       // Debug logları
@@ -614,10 +649,12 @@ class _AddRecipeState extends State<AddRecipe> {
         "Tarif başarıyla eklendi",
         ContentType.success,
       );
-            // 1. SEÇENEK: Tüm sayfaları temizleyip ana sayfaya git
+      // 1. SEÇENEK: Tüm sayfaları temizleyip ana sayfaya git
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => Bottomnav()), // HomePage yerine ana sayfanızın widget adını yazın
+        MaterialPageRoute(
+          builder: (context) => Bottomnav(),
+        ), // HomePage yerine ana sayfanızın widget adını yazın
         (route) => false,
       );
     } catch (e) {
