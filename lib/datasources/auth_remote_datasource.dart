@@ -16,10 +16,11 @@ class AuthRemoteDataSource {
 
       if (response.statusCode == 200) {
         // JSON'dan UserModel'e dönüşüm
-        return UserModel.fromJson(json.decode(response.body));
+        final decodedBody = utf8.decode(response.bodyBytes);
+        return UserModel.fromJson(json.decode(decodedBody));
       } else {
         print('Response status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        print('Response body: ${utf8.decode(response.bodyBytes)}');
         throw Exception('Giriş başarısız!'); // Hata mesajı
       }
     } catch (e) {
@@ -44,10 +45,11 @@ class AuthRemoteDataSource {
       );
 
       if (response.statusCode == 201 || response.statusCode == 200) {
-        return UserModel.fromJson(json.decode(response.body));
+        final decodedBody = utf8.decode(response.bodyBytes);
+        return UserModel.fromJson(json.decode(decodedBody));
       } else {
         print('Response status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        print('Response body: ${utf8.decode(response.bodyBytes)}');
         throw Exception('Kayıt başarısız!');
       }
     } catch (e) {
@@ -65,9 +67,10 @@ class AuthRemoteDataSource {
     );
 
     if (response.statusCode == 200) {
-      return UserModel.fromJson(json.decode(response.body));
+      final decodedBody = utf8.decode(response.bodyBytes);
+      return UserModel.fromJson(json.decode(decodedBody));
     } else {
-      print(response.body);
+      print(utf8.decode(response.bodyBytes));
       throw Exception('Kullanıcı bilgileri alınamadı!');
     }
   }

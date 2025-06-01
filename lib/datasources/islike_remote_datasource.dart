@@ -18,10 +18,11 @@ class LikeRemoteDataSource {
     );
 
     if (response.statusCode == 201 || response.statusCode == 200) {
-      return IsLikeResponse.fromJson(json.decode(response.body));
+      final decodedBody = utf8.decode(response.bodyBytes);
+      return IsLikeResponse.fromJson(json.decode(decodedBody));
     } else {
-      print("Like eklenemedi: ${response.body}");
-      throw Exception("Like eklenemedi: ${response.body}");
+      print("Like eklenemedi: ${utf8.decode(response.bodyBytes)}");
+      throw Exception("Like eklenemedi: ${utf8.decode(response.bodyBytes)}");
     }
   }
 }

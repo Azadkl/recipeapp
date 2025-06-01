@@ -19,7 +19,8 @@ class BookmarkRemoteDataSource {
     print("API Yanıtı: ${response.body}");
     print("API Yanıtı: ${response.statusCode}"); // API yanıtını yazdırıyoruz
     if (response.statusCode == 200) {
-      final dynamic data = json.decode(response.body);
+      final decodedBody = utf8.decode(response.bodyBytes);
+      final dynamic data = json.decode(decodedBody);
       if (data is List) {
         return data.map((e) => BookmarkModel.fromJson(e)).toList();
       } else {
@@ -41,10 +42,13 @@ class BookmarkRemoteDataSource {
     );
 
     if (response.statusCode == 201 || response.statusCode == 200) {
-      return BookmarkResponse.fromJson(json.decode(response.body));
+      final decodedBody = utf8.decode(response.bodyBytes);
+      return BookmarkResponse.fromJson(json.decode(decodedBody));
     } else {
-      print("Bookmark eklenemedi: ${response.body}");
-      throw Exception("Bookmark eklenemedi: ${response.body}");
+      print("Bookmark eklenemedi: ${utf8.decode(response.bodyBytes)}");
+      throw Exception(
+        "Bookmark eklenemedi: ${utf8.decode(response.bodyBytes)}",
+      );
     }
   }
 }

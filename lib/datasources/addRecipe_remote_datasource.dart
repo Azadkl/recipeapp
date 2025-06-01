@@ -61,11 +61,12 @@ class AddrecipeRemoteDatasource {
       final response = await http.Response.fromStream(await request.send());
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseBody = json.decode(response.body);
+        final decodedBody = utf8.decode(response.bodyBytes);
+        final responseBody = json.decode(decodedBody);
         return RecipeModel.fromJson(responseBody);
       } else {
         throw Exception(
-          'Status: ${response.statusCode}\nBody: ${response.body}',
+          'Status: ${response.statusCode}\nBody: ${utf8.decode(response.bodyBytes)}',
         );
       }
     } catch (e) {
