@@ -203,77 +203,94 @@ class _SignupState extends State<Signup> {
     );
   }
 
-  void _handleRegister() async {
-    setState(() {
-      isLoading = true;
-    });
-    if (usernamecontroller.text.isEmpty ||
-        useremailcontroller.text.isEmpty ||
-        userpasswordcontroller.text.isEmpty) {
-      Widgets.showSnackBar(
-        context,
-        "Hata!",
-        "Lütfen tüm alanları doldurunuz.",
-        ContentType.failure,
-      );
-      setState(() {
-        isLoading = false;
-      });
-    } else if (!useremailcontroller.text.contains("@")) {
-      Widgets.showSnackBar(
-        context,
-        "Hata!",
-        "Email içinde @ içeren bir ifade olmalıdır.",
-        ContentType.failure,
-      );
-      setState(() {
-        isLoading = false;
-      });
-    } else
-      // ignore: curly_braces_in_flow_control_structures
-      try {
-        AuthRepository authRepository = AuthRepository();
-        UserModel user = await authRepository.signup(
-          usernamecontroller.text,
-          useremailcontroller.text,
-          userpasswordcontroller.text,
-        );
+void _handleRegister() async {
+  setState(() {
+    isLoading = true;
+  });
 
-        Widgets.showSnackBar(
-          context,
-          "Başarılı!",
-          "Kayıt başarılı! Şimdi giriş yapabilirsiniz.",
-          ContentType.success,
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
-      } catch (e) {
-        // NotUniqueError kontrolü
-        final errStr = e.toString();
-        if (errStr.contains("NotUniqueError") ||
-            errStr.contains("already exists") ||
-            errStr.contains("unique")) {
-          Widgets.showSnackBar(
-            context,
-            "Kayıt Hatası",
-            "Bu kullanıcı adı veya e-posta zaten kayıtlı. Lütfen farklı bir kullanıcı adı veya e-posta deneyin.",
-            ContentType.failure,
-          );
-        } else {
-          Widgets.showSnackBar(
-            context,
-            "Hata!",
-            e.toString(),
-            ContentType.failure,
-          );
-        }
-      } finally {
-        setState(() {
-          isLoading = false;
-        });
-      }
+  // Email geçerlilik kontrolü için regex
+  bool isValidEmail(String email) {
+    return RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email);
   }
+
+  if (usernamecontroller.text.isEmpty ||
+      useremailcontroller.text.isEmpty ||
+      userpasswordcontroller.text.isEmpty) {
+    Widgets.showSnackBar(
+      context,
+      "Hata!",
+      "Lütfen tüm alanları doldurunuz.",
+      ContentType.failure,
+    );
+    setState(() {
+      isLoading = false;
+    });
+    return;
+  }
+
+  if (!isValidEmail(useremailcontroller.text.trim())) {
+    Widgets.showSnackBar(
+      context,
+      "Hata!",
+      "Lütfen geçerli bir e-posta adresi giriniz.",
+      ContentType.failure,
+    );
+    setState(() {
+      isLoading = false;
+    });
+    return;
+  }
+
+  try {
+    AuthRepository authRepository = AuthRepository();
+    UserModel user = await authRepository.signup(
+      usernamecontroller.text.trim(),
+      useremailcontroller.text.trim(),
+      userpasswordcontroller.text,
+    );
+
+    Widgets.showSnackBar(
+      context,
+      "Başarılı!",
+      "Kayıt başarılı! Şimdi giriş yapabilirsiniz.",
+      ContentType.success,
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+  } catch (e) {
+    final errStr = e.toString();
+    if (errStr.contains("NotUniqueError") ||
+        errStr.contains("already exists") ||
+        errStr.contains("unique")) {
+      Widgets.showSnackBar(
+        context,
+        "Kayıt Hatası",
+        "Bu kullanıcı adı veya e-posta zaten kayıtlı. Lütfen farklı bir kullanıcı adı veya e-posta deneyin.",
+        ContentType.failure,
+      );
+    } else if (errStr.contains("email") && errStr.contains("valid")) {
+      Widgets.showSnackBar(
+        context,
+        "Hata!",
+        "Geçerli bir e-posta adresi giriniz.",
+        ContentType.failure,
+      );
+    } else {
+      Widgets.showSnackBar(
+        context,
+        "Hata!",
+        "Kullanıcı adı veya Email zaten kayıtlı!",
+        ContentType.failure,
+      );
+    }
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+
 }

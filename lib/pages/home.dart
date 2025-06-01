@@ -25,13 +25,29 @@ class _HomeState extends State<Home> {
   String? _authToken;
   final SearchController _searchController = SearchController();
 
+  // Maksimum değerler
+  double maxPrepTime = 120;
+  double maxServings = 10;
+
   @override
   void initState() {
     super.initState();
     _loadUserAndRecipes().then((value) {
+      _initializeFilterRanges();
       setState(() {});
     });
-    _loadRecentRecipes(); // recent backend çağrısı
+    _loadRecentRecipes();
+  }
+
+  void _initializeFilterRanges() {
+    if (recipes.isNotEmpty) {
+      maxPrepTime = recipes
+          .map((recipe) => (recipe.prepTime ?? 0).toDouble())
+          .reduce((a, b) => a > b ? a : b);
+      maxServings = recipes
+          .map((recipe) => (recipe.servings ?? 1).toDouble())
+          .reduce((a, b) => a > b ? a : b);
+    }
   }
 
   Future<void> _loadUserAndRecipes() async {
@@ -43,11 +59,11 @@ class _HomeState extends State<Home> {
         user = await userRemoteDataSource.getUserDetail(token);
 
         recipes = await _recipeRepository.getAllRecipes();
-        print("API'den gelen tarif sayısı: ${recipes.length}"); //
+        print("API'den gelen tarif sayısı: ${recipes.length}");
         displayedRecipes = List.from(recipes);
       } else if (token == null) {
         recipes = await _recipeRepository.getAllRecipes();
-        print("API'den gelen tarif sayısı: ${recipes.length}"); //
+        print("API'den gelen tarif sayısı: ${recipes.length}");
         displayedRecipes = List.from(recipes);
       }
     } catch (e) {
@@ -60,7 +76,6 @@ class _HomeState extends State<Home> {
 
   Future<void> _loadRecentRecipes() async {
     try {
-      // Backend'den son yüklenen tarifleri çekiyoruz
       final recent = await _recipeRepository.getRecentRecipes(limit: 10);
       setState(() {
         _recentRecipes = recent;
@@ -70,29 +85,35 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> _searchRecipes(String query) async {
-    print("🔍 Aranan kelime: $query");
+  // Çoklu seçim için filtreleme
+  List<RecipeModel> _getFilteredRecipes(
+    String searchText, {
+    List<String>? foodTypes,
+    RangeValues? prepTime,
+    RangeValues? servings,
+  }) {
+    return recipes.where((recipe) {
+      final titleMatch =
+          searchText.isEmpty ||
+          recipe.title.toLowerCase().contains(searchText.toLowerCase());
 
-    setState(() {
-      if (query.isEmpty) {
-        displayedRecipes = List.from(recipes);
-        print("📋 Boş arama: ${displayedRecipes.length} tarif listelendi.");
-      } else {
-        displayedRecipes =
-            recipes.where((recipe) {
-              final title = recipe.title.toLowerCase();
-              final search = query.toLowerCase();
-              final matches = title.contains(search);
+      final foodTypeMatch =
+          foodTypes == null ||
+          foodTypes.isEmpty ||
+          foodTypes.contains(recipe.foodType ?? 'Belirtilmemiş');
 
-              print(
-                "🎯 Kontrol edilen tarif: ${recipe.title} - Eşleşme: $matches",
-              );
+      final recipeTime = (recipe.prepTime ?? 0).toDouble();
+      final prepTimeMatch =
+          prepTime == null ||
+          (recipeTime >= prepTime.start && recipeTime <= prepTime.end);
 
-              return matches;
-            }).toList();
-        print("🔎 Eşleşen tarif sayısı: ${displayedRecipes.length}");
-      }
-    });
+      final recipeServings = (recipe.servings ?? 1).toDouble();
+      final servingsMatch =
+          servings == null ||
+          (recipeServings >= servings.start && recipeServings <= servings.end);
+
+      return titleMatch && foodTypeMatch && prepTimeMatch && servingsMatch;
+    }).toList();
   }
 
   @override
@@ -140,7 +161,7 @@ class _HomeState extends State<Home> {
                 viewHintText: "Tarifleri Arayın",
                 builder: (BuildContext context, SearchController controller) {
                   return SearchBar(
-                    controller: _searchController,
+                    controller: controller,
                     hintText: "Tarifleri Arayın",
                     backgroundColor: MaterialStateProperty.all(Colors.white),
                     padding: const WidgetStatePropertyAll<EdgeInsets>(
@@ -149,11 +170,6 @@ class _HomeState extends State<Home> {
                     onTap: () {
                       controller.openView();
                     },
-                    onChanged: (value) {
-                      print("🔄 Arama kutusu değişti: $value");
-                      _searchController.text = value;
-                      _searchRecipes(value);
-                    },
                     leading: const Icon(Icons.search),
                   );
                 },
@@ -161,90 +177,395 @@ class _HomeState extends State<Home> {
                   BuildContext context,
                   SearchController controller,
                 ) {
-                  final filteredRecipes =
-                      controller.text.isEmpty
-                          ? recipes
-                          : recipes
-                              .where(
-                                (recipe) => recipe.title.toLowerCase().contains(
-                                  controller.text.toLowerCase(),
-                                ),
-                              )
-                              .toList();
-
-                  // Beğeni sayısına göre azalan sırala
-                  filteredRecipes.sort(
-                    (a, b) => b.likesCount.compareTo(a.likesCount),
-                  );
-
                   return [
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        controller.text.isEmpty
-                            ? 'Tüm Tarifler (${filteredRecipes.length})'
-                            : 'Arama Sonuçları (${filteredRecipes.length})',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                    if (filteredRecipes.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Center(
-                          child: Text(
-                            'Arama kriterlerinize uygun tarif bulunamadı.',
-                          ),
-                        ),
-                      )
-                    else
-                      ...filteredRecipes.map(
-                        (recipe) => ListTile(
-                          title: Text(recipe.title),
-                          subtitle: Text(
-                            '${recipe.foodType ?? 'Belirtilmemiş'} • ${recipe.servings ?? 1} • ${recipe.prepTime ?? 0} dk',
-                          ),
-                          leading: CircleAvatar(
-                            backgroundImage:
-                                recipe.image != null
-                                    ? MemoryImage(base64Decode(recipe.image!))
-                                    : null,
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.favorite, color: Colors.red, size: 18),
-                              const SizedBox(width: 4),
-                              Text(
-                                recipe.likesCount.toString(),
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(color: Colors.black),
-                              ),
-                            ],
-                          ),
-                          onTap: () {
-                            controller.closeView(recipe.title);
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => RecipeScreen(recipe: recipe),
-                              ),
+                    StatefulBuilder(
+                      builder: (context, setFilterState) {
+                        // Local filtre değişkenleri
+                        List<String> localSelectedFoodTypes = [];
+                        RangeValues localPrepTimeRange = RangeValues(
+                          0,
+                          maxPrepTime,
+                        );
+                        RangeValues localServingsRange = RangeValues(
+                          1,
+                          maxServings,
+                        );
+                        bool showFilters = false;
+
+                        return StatefulBuilder(
+                          builder: (context, setLocalState) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Filtre başlığı ve toggle butonu
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      // Arama Sonuçları başlığı ve tarif sayısı
+                                      Builder(
+                                        builder: (context) {
+                                          final filteredRecipes =
+                                              _getFilteredRecipes(
+                                                controller.text,
+                                                foodTypes:
+                                                    localSelectedFoodTypes
+                                                            .isEmpty
+                                                        ? null
+                                                        : localSelectedFoodTypes,
+                                                prepTime: localPrepTimeRange,
+                                                servings: localServingsRange,
+                                              );
+                                          return Text(
+                                            "Arama Sonuçları (${filteredRecipes.length})",
+                                            style:
+                                                Theme.of(
+                                                  context,
+                                                ).textTheme.titleMedium,
+                                          );
+                                        },
+                                      ),
+                                      TextButton.icon(
+                                        icon: Icon(
+                                          showFilters
+                                              ? Icons.filter_list_off
+                                              : Icons.filter_list,
+                                          color:
+                                              showFilters
+                                                  ? Colors.blue
+                                                  : Colors.grey,
+                                        ),
+                                        label: Text(
+                                          "Filtre",
+                                          style: TextStyle(
+                                            color:
+                                                showFilters
+                                                    ? Colors.blue
+                                                    : Colors.grey,
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          setLocalState(() {
+                                            showFilters = !showFilters;
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                // Filtre paneli (açılır/kapanır)
+                                if (showFilters) ...[
+                                  Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 16.0,
+                                    ),
+                                    padding: const EdgeInsets.all(16.0),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Tarif türü filtreleri
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Tarif Türü",
+                                              style:
+                                                  Theme.of(
+                                                    context,
+                                                  ).textTheme.titleSmall,
+                                            ),
+                                            if (localSelectedFoodTypes
+                                                .isNotEmpty) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  "${localSelectedFoodTypes.length} seçili",
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Wrap(
+                                          spacing: 8,
+                                          children: [
+                                            FilterChip(
+                                              label: const Text("Yemek"),
+                                              selected: localSelectedFoodTypes
+                                                  .contains("Yemek"),
+                                              onSelected: (selected) {
+                                                setLocalState(() {
+                                                  if (selected) {
+                                                    localSelectedFoodTypes.add(
+                                                      "Yemek",
+                                                    );
+                                                  } else {
+                                                    localSelectedFoodTypes
+                                                        .remove("Yemek");
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            FilterChip(
+                                              label: const Text("Tatlı"),
+                                              selected: localSelectedFoodTypes
+                                                  .contains("Tatlı"),
+                                              onSelected: (selected) {
+                                                setLocalState(() {
+                                                  if (selected) {
+                                                    localSelectedFoodTypes.add(
+                                                      "Tatlı",
+                                                    );
+                                                  } else {
+                                                    localSelectedFoodTypes
+                                                        .remove("Tatlı");
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            FilterChip(
+                                              label: const Text("Çorba"),
+                                              selected: localSelectedFoodTypes
+                                                  .contains("Çorba"),
+                                              onSelected: (selected) {
+                                                setLocalState(() {
+                                                  if (selected) {
+                                                    localSelectedFoodTypes.add(
+                                                      "Çorba",
+                                                    );
+                                                  } else {
+                                                    localSelectedFoodTypes
+                                                        .remove("Çorba");
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                            FilterChip(
+                                              label: const Text("İçecek"),
+                                              selected: localSelectedFoodTypes
+                                                  .contains("İçecek"),
+                                              onSelected: (selected) {
+                                                setLocalState(() {
+                                                  if (selected) {
+                                                    localSelectedFoodTypes.add(
+                                                      "İçecek",
+                                                    );
+                                                  } else {
+                                                    localSelectedFoodTypes
+                                                        .remove("İçecek");
+                                                  }
+                                                });
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 16),
+
+                                        // Hazırlık süresi filtresi
+                                        Text(
+                                          "Hazırlık Süresi: ${localPrepTimeRange.start.round()}-${localPrepTimeRange.end.round()} dk",
+                                          style:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.titleSmall,
+                                        ),
+                                        RangeSlider(
+                                          values: localPrepTimeRange,
+                                          min: 0,
+                                          max: maxPrepTime,
+                                          divisions: maxPrepTime.round(),
+                                          labels: RangeLabels(
+                                            "${localPrepTimeRange.start.round()} dk",
+                                            "${localPrepTimeRange.end.round()} dk",
+                                          ),
+                                          onChanged: (values) {
+                                            setLocalState(() {
+                                              localPrepTimeRange = values;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+
+                                        // Porsiyon sayısı filtresi
+                                        Text(
+                                          "Porsiyon: ${localServingsRange.start.round()}-${localServingsRange.end.round()} kişi",
+                                          style:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.titleSmall,
+                                        ),
+                                        RangeSlider(
+                                          values: localServingsRange,
+                                          min: 1,
+                                          max: maxServings,
+                                          divisions: (maxServings - 1).round(),
+                                          labels: RangeLabels(
+                                            "${localServingsRange.start.round()}",
+                                            "${localServingsRange.end.round()}",
+                                          ),
+                                          onChanged: (values) {
+                                            setLocalState(() {
+                                              localServingsRange = values;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(height: 16),
+
+                                        // Filtreleri temizle butonu
+                                        Center(
+                                          child: ElevatedButton(
+                                            onPressed: () {
+                                              setLocalState(() {
+                                                localSelectedFoodTypes.clear();
+                                                localPrepTimeRange =
+                                                    RangeValues(0, maxPrepTime);
+                                                localServingsRange =
+                                                    RangeValues(1, maxServings);
+                                              });
+                                            },
+                                            child: const Text(
+                                              "Filtreleri Temizle",
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // Filtrelenmiş sonuçlar
+                                ...(() {
+                                  final filteredRecipes = _getFilteredRecipes(
+                                    controller.text,
+                                    foodTypes:
+                                        localSelectedFoodTypes.isEmpty
+                                            ? null
+                                            : localSelectedFoodTypes,
+                                    prepTime: localPrepTimeRange,
+                                    servings: localServingsRange,
+                                  );
+
+                                  // Beğeni sayısına göre azalan sırala
+                                  filteredRecipes.sort(
+                                    (a, b) =>
+                                        b.likesCount.compareTo(a.likesCount),
+                                  );
+
+                                  final resultWidgets = <Widget>[];
+
+                                  if (filteredRecipes.isEmpty) {
+                                    resultWidgets.add(
+                                      const Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: Center(
+                                          child: Text(
+                                            'Arama kriterlerinize uygun tarif bulunamadı.',
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    resultWidgets.addAll(
+                                      filteredRecipes
+                                          .map(
+                                            (recipe) => ListTile(
+                                              title: Text(recipe.title),
+                                              subtitle: Text(
+                                                '${recipe.foodType ?? 'Belirtilmemiş'} • ${recipe.servings ?? 1} kişilik • ${recipe.prepTime ?? 0} dk',
+                                              ),
+                                              leading: CircleAvatar(
+                                                backgroundImage:
+                                                    recipe.image != null
+                                                        ? MemoryImage(
+                                                          base64Decode(
+                                                            recipe.image!,
+                                                          ),
+                                                        )
+                                                        : null,
+                                              ),
+                                              trailing: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                    Icons.favorite,
+                                                    color: Colors.red,
+                                                    size: 18,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    recipe.likesCount
+                                                        .toString(),
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.copyWith(
+                                                          color: Colors.black,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                              onTap: () {
+                                                controller.closeView(
+                                                  recipe.title,
+                                                );
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder:
+                                                        (context) =>
+                                                            RecipeScreen(
+                                                              recipe: recipe,
+                                                            ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          )
+                                          .toList(),
+                                    );
+                                  }
+
+                                  return resultWidgets;
+                                })(),
+                              ],
                             );
                           },
-                        ),
-                      ),
+                        );
+                      },
+                    ),
                   ];
                 },
               ),
             ),
-            // Popüler Tarifler
+            // Ana sayfa bölümleri
             isLoading
                 ? SizedBox(
                   height: 280,
                   child: Center(child: CircularProgressIndicator()),
                 )
                 : _buildRecipeSection("Popüler Tarifler", displayedRecipes),
-            // Son Yüklenen Tarifler
             _recentRecipes.isEmpty && isLoading
                 ? SizedBox(
                   height: 280,
@@ -346,7 +667,6 @@ class _HomeState extends State<Home> {
                                     color: Colors.white,
                                     size: 20,
                                   ),
-
                                   const SizedBox(width: 4),
                                   Text(
                                     recipe.likesCount.toString(),
@@ -415,20 +735,5 @@ class _HomeState extends State<Home> {
         ),
       ],
     );
-  }
-
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Tatlı':
-        return Colors.pink;
-      case 'Yemek':
-        return Colors.orange;
-      case 'İçecek':
-        return Colors.blue;
-      case 'Çorba':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
   }
 }
